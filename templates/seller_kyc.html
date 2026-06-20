@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block title %}KYC Verification — Xoptime Seller{% endblock %}
+
+{% block content %}
+<style>
+.kyc-wrap { max-width:560px; margin:32px auto 60px; padding:0 16px; }
+.kyc-header { text-align:center; margin-bottom:28px; }
+.kyc-header h2 { font-size:1.5rem; font-weight:700; color:#1a1a1a; margin-bottom:6px; }
+.kyc-header p { font-size:0.9rem; color:#666; }
+.kyc-stepper { display:flex; align-items:center; justify-content:center; gap:0; margin-bottom:32px; }
+.kyc-step-item { display:flex; flex-direction:column; align-items:center; position:relative; flex:1; }
+.kyc-step-item:not(:last-child)::after { content:''; position:absolute; top:18px; left:60%; width:80%; height:2px; background:#e0e0e0; z-index:0; }
+.kyc-step-item.done:not(:last-child)::after { background:#16a34a; }
+.step-circle { width:36px; height:36px; border-radius:50%; border:2px solid #e0e0e0; background:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.85rem; color:#aaa; z-index:1; position:relative; transition:all 0.3s; }
+.kyc-step-item.done .step-circle { background:#16a34a; border-color:#16a34a; color:#fff; }
+.kyc-step-item.active .step-circle { background:#f97316; border-color:#f97316; color:#fff; box-shadow:0 0 0 4px rgba(249,115,22,0.15); }
+.step-label { font-size:0.72rem; margin-top:6px; color:#aaa; font-weight:500; text-align:center; }
+.kyc-step-item.done .step-label { color:#16a34a; }
+.kyc-step-item.active .step-label { color:#f97316; font-weight:700; }
+.kyc-card { background:#fff; border-radius:16px; box-shadow:0 2px 16px rgba(0,0,0,0.08); padding:28px 28px 24px; }
+.kyc-card h3 { font-size:1.1rem; font-weight:700; margin-bottom:4px; color:#1a1a1a; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.step-badge { font-size:0.7rem; background:#fff3e0; color:#f97316; border-radius:20px; padding:2px 10px; font-weight:700; }
+.subtitle { font-size:0.84rem; color:#888; margin-bottom:20px; }
+.form-group { margin-bottom:16px; }
+.form-group label { display:block; font-size:0.82rem; font-weight:600; color:#444; margin-bottom:5px; }
+.form-group input { width:100%; padding:10px 12px; border:1.5px solid #e0e0e0; border-radius:8px; font-size:0.92rem; transition:border-color 0.2s; outline:none; box-sizing:border-box; }
+.form-group input:focus { border-color:#f97316; }
+.form-group .hint { font-size:0.75rem; color:#aaa; margin-top:3px; }
+.btn-kyc { width:100%; padding:12px; background:#f97316; color:#fff; font-size:1rem; font-weight:700; border:none; border-radius:10px; cursor:pointer; margin-top:8px; transition:background 0.2s; }
+.btn-kyc:hover { background:#ea6b0e; }
+.btn-skip { width:100%; padding:10px; background:#f5f5f5; color:#666; font-size:0.88rem; font-weight:600; border:none; border-radius:10px; cursor:pointer; margin-top:8px; }
+.btn-skip:hover { background:#eee; }
+.kyc-done-card { background:#f0fdf4; border:1.5px solid #bbf7d0; border-radius:12px; padding:14px 18px; display:flex; align-items:center; gap:12px; margin-bottom:10px; }
+.kyc-done-card .done-icon { font-size:1.4rem; }
+.kyc-done-card .done-text { font-size:0.88rem; color:#166534; font-weight:600; }
+.kyc-done-card .done-val { font-size:0.78rem; color:#4ade80; margin-top:1px; }
+.info-box { background:#fef9ee; border:1px solid #fde68a; border-radius:10px; padding:12px 14px; font-size:0.8rem; color:#92400e; margin-bottom:18px; line-height:1.5; }
+.name-match-note { background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:10px 12px; font-size:0.78rem; color:#1e40af; margin-bottom:14px; }
+</style>
+
+<div class="kyc-wrap">
+  <div class="kyc-header">
+    <h2>🔐 Seller Verification (KYC)</h2>
+    <p>Dashboard access ke liye 3 steps complete karo</p>
+  </div>
+
+  <!-- 3-step stepper -->
+  <div class="kyc-stepper">
+    <div class="kyc-step-item {% if pan_done %}done{% elif current_step == 1 %}active{% endif %}">
+      <div class="step-circle">{% if pan_done %}✓{% else %}1{% endif %}</div>
+      <div class="step-label">PAN Card</div>
+    </div>
+    <div class="kyc-step-item {% if gst_done %}done{% elif current_step == 2 %}active{% endif %}">
+      <div class="step-circle">{% if gst_done %}✓{% else %}2{% endif %}</div>
+      <div class="step-label">GST / Tax</div>
+    </div>
+    <div class="kyc-step-item {% if bank_done %}done{% elif current_step == 3 %}active{% endif %}">
+      <div class="step-circle">{% if bank_done %}✓{% else %}3{% endif %}</div>
+      <div class="step-label">Bank / UPI</div>
+    </div>
+  </div>
+
+  {% with msgs = get_flashed_messages(with_categories=True) %}
+    {% for cat, msg in msgs %}
+      <div class="alert alert-{{ 'success' if cat == 'ok' else 'danger' }} mb-3" style="border-radius:10px;font-size:.88rem;">{{ msg }}</div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="kyc-card">
+
+    <!-- ══ STEP 1: PAN ══ -->
+    {% if current_step == 1 %}
+      <h3><span>📄</span> PAN Card Verification <span class="step-badge">Step 1 of 3</span></h3>
+      <div class="subtitle">Apna PAN number aur PAN card pe likha naam daalo</div>
+      <div class="info-box">⚠️ <strong>Important:</strong> PAN card pe jo naam hai, wahi naam bank account mein hona chahiye. Dono match nahi kiya toh bank step fail ho jayega.</div>
+      <form method="POST" action="/seller/kyc/pan">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+          <label>PAN Number *</label>
+          <input type="text" name="pan" placeholder="ABCDE1234F" maxlength="10" style="text-transform:uppercase" required value="{{ seller.pan or '' }}">
+          <div class="hint">Format: 5 letters + 4 digits + 1 letter (e.g. ABCDE1234F)</div>
+        </div>
+        <div class="form-group">
+          <label>Naam (PAN card pe likha) *</label>
+          <input type="text" name="name_on_pan" placeholder="Jaise PAN card pe hai" required value="{{ seller.pan_name or '' }}">
+          <div class="hint">Exactly as printed on your PAN card</div>
+        </div>
+        <div class="form-group">
+          <label>Date of Birth (Optional)</label>
+          <input type="date" name="dob">
+        </div>
+        <button type="submit" class="btn-kyc">✅ PAN Verify Karo</button>
+      </form>
+
+    <!-- ══ STEP 2: GST ══ -->
+    {% elif current_step == 2 %}
+      <div class="kyc-done-card">
+        <div class="done-icon">✅</div>
+        <div><div class="done-text">PAN Verified</div><div class="done-val">{{ seller.pan }} — {{ seller.pan_name }}</div></div>
+      </div>
+      <h3><span>🏢</span> GST Verification <span class="step-badge">Step 2 of 3</span></h3>
+      <div class="subtitle">Apna GSTIN number daalo. GST nahi hai toh skip kar sakte ho.</div>
+      <form method="POST" action="/seller/kyc/gst">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+          <label>GSTIN Number *</label>
+          <input type="text" name="gstin" placeholder="22AAAAA0000A1Z5" maxlength="15" style="text-transform:uppercase" required value="{{ seller.gstin or '' }}">
+          <div class="hint">15-character GST Identification Number</div>
+        </div>
+        <button type="submit" class="btn-kyc">✅ GST Verify Karo</button>
+      </form>
+      <form method="GET" action="/seller/kyc/skip-gst">
+        <button type="submit" class="btn-skip">GST nahi hai? Skip karo →</button>
+      </form>
+      <div class="info-box" style="margin-top:14px;">GST ke bina bhi sell kar sakte ho (composition scheme / small sellers).</div>
+
+    <!-- ══ STEP 3: BANK ══ -->
+    {% elif current_step == 3 %}
+      <div class="kyc-done-card">
+        <div class="done-icon">✅</div>
+        <div><div class="done-text">PAN Verified — {{ seller.pan_name }}</div><div class="done-val">{{ seller.pan }}</div></div>
+      </div>
+      <div class="kyc-done-card">
+        <div class="done-icon">✅</div>
+        <div>
+          <div class="done-text">GST {% if seller.gstin %}Verified{% else %}Skipped{% endif %}</div>
+          <div class="done-val">{{ seller.gstin or 'GST Exempt / Composition' }}</div>
+        </div>
+      </div>
+      <h3><span>🏦</span> Bank / UPI Verification <span class="step-badge">Step 3 of 3</span></h3>
+      <div class="subtitle">Payout ke liye bank account ya UPI ID add karo</div>
+      <div class="name-match-note">ℹ️ <strong>Naam match required:</strong> Bank account ka naam <strong>"{{ seller.pan_name }}"</strong> se match karna chahiye (PAN card naam).</div>
+
+      <div style="display:flex;gap:8px;margin-bottom:18px;">
+        <button onclick="showTab('bank')" id="tab-bank" style="flex:1;padding:8px;border-radius:8px;border:2px solid #f97316;background:#fff3e0;color:#f97316;font-weight:700;cursor:pointer;font-size:.85rem;">🏦 Bank Account</button>
+        <button onclick="showTab('upi')" id="tab-upi" style="flex:1;padding:8px;border-radius:8px;border:2px solid #e0e0e0;background:#fff;color:#888;font-weight:700;cursor:pointer;font-size:.85rem;">📱 UPI ID</button>
+      </div>
+
+      <div id="form-bank">
+        <form method="POST" action="/seller/kyc/bank">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="form-group">
+            <label>Account Holder Naam *</label>
+            <input type="text" name="bank_name" placeholder="Jaise PAN card pe hai" required value="{{ seller.pan_name or '' }}">
+            <div class="hint">Yeh naam PAN card naam se match karna chahiye</div>
+          </div>
+          <div class="form-group">
+            <label>Bank Account Number *</label>
+            <input type="text" name="bank_account" placeholder="Enter account number" required>
+          </div>
+          <div class="form-group">
+            <label>IFSC Code *</label>
+            <input type="text" name="bank_ifsc" id="ifsc-input" placeholder="HDFC0001234" maxlength="11" style="text-transform:uppercase" required oninput="lookupIFSC(this.value)">
+            <div class="hint" id="ifsc-info">11-character IFSC code</div>
+          </div>
+          <div class="form-group">
+            <label>Bank Name *</label>
+            <input type="text" name="bank_bank" id="bank-name-auto" placeholder="Auto-fill hoga IFSC se" required>
+          </div>
+          <button type="submit" class="btn-kyc">✅ Bank Verify Karo &amp; Dashboard Open Karo</button>
+        </form>
+      </div>
+
+      <div id="form-upi" style="display:none;">
+        <form method="POST" action="/seller/kyc/bank">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="form-group">
+            <label>UPI ID *</label>
+            <input type="text" name="upi_id" placeholder="yourname@upi" required>
+            <div class="hint">e.g. 9876543210@paytm or name@okaxis</div>
+          </div>
+          <button type="submit" class="btn-kyc">✅ UPI Verify Karo &amp; Dashboard Open Karo</button>
+        </form>
+      </div>
+    {% endif %}
+
+  </div>
+
+  <div style="text-align:center;margin-top:20px;font-size:.8rem;color:#aaa;">
+    Koi problem? <a href="/support" style="color:#f97316;">Support se contact karo</a>
+  </div>
+</div>
+
+<script>
+function showTab(tab) {
+  const b=document.getElementById('form-bank'), u=document.getElementById('form-upi');
+  const tb=document.getElementById('tab-bank'), tu=document.getElementById('tab-upi');
+  if(tab==='bank'){
+    b.style.display='block'; u.style.display='none';
+    tb.style.cssText='flex:1;padding:8px;border-radius:8px;border:2px solid #f97316;background:#fff3e0;color:#f97316;font-weight:700;cursor:pointer;font-size:.85rem;';
+    tu.style.cssText='flex:1;padding:8px;border-radius:8px;border:2px solid #e0e0e0;background:#fff;color:#888;font-weight:700;cursor:pointer;font-size:.85rem;';
+  } else {
+    b.style.display='none'; u.style.display='block';
+    tu.style.cssText='flex:1;padding:8px;border-radius:8px;border:2px solid #f97316;background:#fff3e0;color:#f97316;font-weight:700;cursor:pointer;font-size:.85rem;';
+    tb.style.cssText='flex:1;padding:8px;border-radius:8px;border:2px solid #e0e0e0;background:#fff;color:#888;font-weight:700;cursor:pointer;font-size:.85rem;';
+  }
+}
+let ifscTimer;
+function lookupIFSC(val) {
+  clearTimeout(ifscTimer);
+  val=val.toUpperCase();
+  if(val.length!==11) return;
+  ifscTimer=setTimeout(()=>{
+    const info=document.getElementById('ifsc-info'), bf=document.getElementById('bank-name-auto');
+    info.textContent='Searching...';
+    fetch('https://ifsc.razorpay.com/'+val).then(r=>r.json()).then(d=>{
+      if(d&&d.BANK){info.textContent='✅ '+d.BANK+' — '+(d.BRANCH||''); bf.value=d.BANK;}
+      else{info.textContent='❌ IFSC nahi mila, manually enter karo';}
+    }).catch(()=>{info.textContent='IFSC lookup fail, manually enter karo';});
+  },600);
+}
+</script>
+{% endblock %}

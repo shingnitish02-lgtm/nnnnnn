@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% block page_title %}Account — Xoptime{% endblock %}
+{% block content %}
+
+<style>
+.acc-section-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  text-transform: uppercase;
+  padding: 18px 0 6px 0;
+}
+.acc-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--text);
+  transition: opacity 0.12s;
+}
+.acc-row:last-child { border-bottom: none; }
+.acc-row:hover { opacity: 0.8; color: var(--text); }
+.acc-row-icon {
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; flex-shrink: 0;
+}
+.acc-row-label { font-size: 0.92rem; font-weight: 500; flex: 1; }
+.acc-row-badge {
+  font-size: 0.68rem;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 20px;
+  padding: 2px 8px;
+  font-weight: 600;
+}
+.acc-row-chevron { color: var(--muted); font-size: 1rem; }
+.acc-row-value { font-size: 0.82rem; color: var(--muted); }
+.acc-card {
+  background: var(--card);
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  padding: 0 16px;
+  margin-bottom: 8px;
+}
+.acc-avatar {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--gold2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.7rem; font-weight: 700; color: #fff;
+  flex-shrink: 0;
+}
+.acc-quick {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.acc-quick-btn {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 12px;
+  display: flex; flex-direction: column;
+  align-items: center; gap: 6px;
+  text-decoration: none; color: var(--text);
+  transition: border-color 0.15s;
+}
+.acc-quick-btn:hover { border-color: var(--accent); color: var(--text); }
+.acc-quick-btn .q-icon { font-size: 1.5rem; }
+.acc-quick-btn .q-label { font-size: 0.78rem; color: var(--muted); font-weight: 500; text-align:center; }
+</style>
+
+<div class="acc-section-title" style="padding-top:8px">ACCOUNT</div>
+
+<!-- Profile Header -->
+<div class="acc-card mb-3">
+  <a href="/profile?edit=1" class="acc-row" style="padding:16px 0">
+    <div class="acc-avatar">{{ (user.name or 'U')[0].upper() }}</div>
+    <div style="flex:1">
+      <div class="fw-semibold" style="font-size:1.05rem">{{ user.name }}</div>
+      <div class="small-muted" style="font-size:0.8rem">{{ user.email }}</div>
+      {% if user.phone %}<div class="small-muted" style="font-size:0.8rem">📞 {{ user.phone }}</div>{% endif %}
+    </div>
+    <span class="acc-row-chevron">›</span>
+  </a>
+</div>
+
+<!-- Wallet -->
+<div class="acc-card mb-3">
+  <div class="acc-row" style="border-bottom:none;padding:16px 0;cursor:default">
+    <div class="acc-row-icon" style="background:rgba(52,211,153,0.12)">👛</div>
+    <div style="flex:1">
+      <div class="acc-row-label">Xoptime Wallet</div>
+      <div class="small-muted" style="font-size:0.78rem">Available balance</div>
+    </div>
+    <div style="font-size:1.15rem;font-weight:700;color:var(--success)">₹{{ "%.2f"|format(user.wallet_balance or 0) }}</div>
+  </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="acc-quick">
+  <a href="/support" class="acc-quick-btn">
+    <span class="q-icon">📞</span>
+    <span class="q-label">Help Centre</span>
+  </a>
+  <a href="/referral" class="acc-quick-btn">
+    <span class="q-icon">🎁</span>
+    <span class="q-label">Refer & Earn ₹100</span>
+  </a>
+</div>
+
+<!-- My Payments -->
+<div class="acc-section-title">MY PAYMENTS</div>
+<div class="acc-card">
+  <a href="/profile/bank" class="acc-row">
+    <div class="acc-row-icon" style="background:rgba(99,102,241,0.12)">🏦</div>
+    <div class="acc-row-label">My Bank & UPI Details</div>
+    <span class="acc-row-chevron">›</span>
+  </a>
+  <a href="/orders" class="acc-row">
+    <div class="acc-row-icon" style="background:rgba(59,130,246,0.12)">💳</div>
+    <div class="acc-row-label">Payment & Refund History</div>
+    <span class="acc-row-chevron">›</span>
+  </a>
+</div>
+
+<!-- My Activity -->
+<div class="acc-section-title">MY ACTIVITY</div>
+<div class="acc-card">
+  <a href="/orders" class="acc-row">
+    <div class="acc-row-icon" style="background:rgba(251,146,60,0.12)">📦</div>
+    <div class="acc-row-label">My Orders</div>
+    <span class="acc-row-chevron">›</span>
+  </a>
+  <a href="/wishlist" class="acc-row">
+    <div class="acc-row-icon" style="background:rgba(239,68,68,0.12)">❤️</div>
+    <div class="acc-row-label">Wishlisted Products</div>
+    <span class="acc-row-chevron">›</span>
+  </a>
+  <a href="/notifications" class="acc-row">
+    <div class="acc-row-icon" style="background:rgba(234,179,8,0.12)">🔔</div>
+    <div class="acc-row-label">Notifications</div>
+    {% if unread_notif %}<span class="acc-row-badge">{{ unread_notif }}</span>{% endif %}
+    <span class="acc-row-chevron">›</span>
+  </a>
+  {% if session.get('is_reseller') %}
+  <a href="/reseller/dashboard" class="acc-row">
+    <div class="acc-row-icon" style="background:rgba(52,211,153,0.12)">🏪</div>
+    <div class="acc-row-label">Reseller Dashboard</div>
+    <span class="acc-row-chevron">›</span>
+  </a>
+  {% else %}
+  <a href="/become-reseller" class="acc-row">
+    <div class="acc-row-icon" style="background:rgba(201,168,76,0.12)">💰</div>
+    <div class="acc-row-label">Earn with Xoptime</div>
+    <span class="acc-row-badge" style="background:var(--gold2)">New</span>
+    <span class="acc-row-chevron">›</span>
+  </a>
+  {% endif %}
+</div>
+
+<!-- Others -->
+<div class="acc-section-title">OTHERS</div>
+<div class="acc-card">
+  {% if user.referral_code %}
+  <div class="acc-row" onclick="navigator.clipboard.writeText('{{ user.referral_code }}').then(()=>{let t=document.getElementById('ref-copied');t.style.display='inline';setTimeout(()=>t.style.display='none',1500)})">
+    <div class="acc-row-icon" style="background:rgba(201,168,76,0.12)">🎫</div>
+    <div style="flex:1">
+      <div class="acc-row-label">Referral Code</div>
+      <div class="small-muted" style="font-size:0.78rem;color:var(--gold2)">{{ user.referral_code }}</div>
+    </div>
+    <span style="font-size:0.75rem;color:var(--accent)">Tap to copy</span>
+    <span id="ref-copied" style="display:none;font-size:0.75rem;color:var(--success);margin-left:4px">✓ Copied!</span>
+  </div>
+  {% endif %}
+  <a href="/change-password" class="acc-row">
+    <div class="acc-row-icon" style="background:rgba(99,102,241,0.12)">🔒</div>
+    <div class="acc-row-label">Change Password</div>
+    <span class="acc-row-chevron">›</span>
+  </a>
+  <a href="/support" class="acc-row">
+    <div class="acc-row-icon" style="background:rgba(52,211,153,0.12)">💬</div>
+    <div class="acc-row-label">Help & Support</div>
+    <span class="acc-row-chevron">›</span>
+  </a>
+  <div class="acc-row" style="cursor:default">
+    <div class="acc-row-icon" style="background:rgba(148,163,184,0.1)">📅</div>
+    <div class="acc-row-label">Member Since</div>
+    <span class="acc-row-value">{{ user.created_at.strftime('%b %Y') if user.created_at else '—' }}</span>
+  </div>
+</div>
+
+<!-- Logout -->
+<div class="acc-card mt-2 mb-5">
+  <a href="/logout" class="acc-row" style="border-bottom:none;color:#f87171">
+    <div class="acc-row-icon" style="background:rgba(248,113,113,0.12)">🚪</div>
+    <div class="acc-row-label" style="color:#f87171">Logout</div>
+    <span class="acc-row-chevron" style="color:#f87171">›</span>
+  </a>
+</div>
+
+<!-- Edit Profile Modal -->
+{% if request.args.get('edit') %}
+<div class="modal fade show" style="display:block;background:rgba(0,0,0,0.65)" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:var(--card);border:1px solid var(--border);border-radius:20px">
+      <div class="modal-header" style="border-color:var(--border)">
+        <h5 class="modal-title">Edit Profile</h5>
+        <a href="/profile" class="btn-close btn-close-white"></a>
+      </div>
+      <div class="modal-body">
+        <form method="post">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="mb-3">
+            <label class="form-label">Full Name</label>
+            <input class="form-control input" name="name" required value="{{ user.name }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Phone</label>
+            <input class="form-control input" name="phone" value="{{ user.phone or '' }}" placeholder="10-digit mobile">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Default Address</label>
+            <textarea class="form-control input" name="address" rows="2" placeholder="House, Street, Area, City">{{ user.address or '' }}</textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Pincode</label>
+            <input class="form-control input" name="pincode" value="{{ user.pincode or '' }}" maxlength="6">
+          </div>
+          <button class="btn btn-primary w-100">Save Changes</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Address Book -->
+{% if saved_addresses %}
+<div class="card p-4 mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="fw-semibold">📍 Saved Addresses</div>
+    <span class="small-muted" style="font-size:0.78rem">{{ saved_addresses|length }} address{% if saved_addresses|length != 1 %}es{% endif %}</span>
+  </div>
+  <div class="vstack gap-2">
+    {% for addr in saved_addresses %}
+    <div class="d-flex align-items-start gap-3 p-3" style="background:var(--bg);border:1px solid var(--border2);border-radius:12px">
+      <div style="width:32px;height:32px;border-radius:50%;background:rgba(155,31,232,0.1);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0">🏠</div>
+      <div style="flex:1;min-width:0">
+        <div class="fw-semibold" style="font-size:0.88rem">{{ addr.name }}</div>
+        <div class="small-muted" style="font-size:0.8rem;margin-top:2px">{{ addr.address }}{% if addr.pincode %}, {{ addr.pincode }}{% endif %}</div>
+        <div class="small-muted" style="font-size:0.78rem">📞 {{ addr.phone }}</div>
+      </div>
+      <form method="post" action="/profile/address/remove/{{ loop.index0 }}" onsubmit="return confirm('Is address ko delete karna hai?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-sm" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);color:#f87171;border-radius:8px;font-size:0.75rem;padding:4px 10px">🗑 Remove</button>
+      </form>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="small-muted mt-2" style="font-size:0.75rem">💡 New addresses checkout pe "Save for future" check karke save hote hain.</div>
+</div>
+{% endif %}
+
+{% endif %}
+
+{% endblock %}

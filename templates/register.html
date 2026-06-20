@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center mt-4">
+  <div class="col-md-6 col-lg-5">
+    <div class="text-center mb-4">
+      <span class="section-label">Join Xoptime</span>
+      <h1 class="mb-1">Account Banao</h1>
+      <p class="small-muted">Sirf naam aur phone number chahiye</p>
+    </div>
+    <div class="card p-4">
+      <form method="post" action="/register">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-3">
+          <label class="form-label">👤 Poora Naam</label>
+          <input class="form-control" name="name" required placeholder="Aapka naam" autofocus>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">📱 Mobile Number</label>
+          <div class="input-group">
+            <span class="input-group-text">🇮🇳 +91</span>
+            <input class="form-control" type="tel" name="phone" required
+                   placeholder="10-digit number" maxlength="10"
+                   pattern="[6-9][0-9]{9}" inputmode="numeric">
+          </div>
+        </div>
+        <div class="mb-4">
+          <label class="form-label">🛒 Account Type</label>
+          <select class="form-select" name="role" required>
+            <option value="buyer">Buyer — Shopping karna hai</option>
+            <option value="seller">Seller — Bechna hai</option>
+          </select>
+        </div>
+        <button class="btn btn-primary w-100 py-2" type="submit">OTP se Verify karo →</button>
+      </form>
+      <div class="text-center small-muted mt-3">
+        Pehle se account hai? <a href="/login" style="color:var(--gold2)">Login karo</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

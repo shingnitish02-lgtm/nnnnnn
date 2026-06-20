@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="text-center py-5">
+  <div style="font-size:5rem;margin-bottom:16px">🔍</div>
+  <h1 class="fw-bold mb-2" style="font-size:3rem;color:var(--gold2)">404</h1>
+  <h2 class="mb-3">Page nahi mili</h2>
+  <p class="small-muted mb-4" style="max-width:400px;margin:0 auto">
+    Jis page ko aap dhundh rahe hain woh exist nahi karta, move ho gayi hai, ya delete ho gayi hai.
+  </p>
+  <div class="d-flex gap-3 justify-content-center">
+    <a href="/" class="btn btn-primary">🏠 Homepage par jao</a>
+    <a href="/search" class="btn btn-outline-light">🔍 Products search karo</a>
+  </div>
+</div>
+{% endblock %}

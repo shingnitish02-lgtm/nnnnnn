@@ -1,0 +1,300 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <a href="/orders" class="small-muted text-decoration-none">← My Orders</a>
+    <h1 class="h4 fw-bold mb-1 mt-1">Order #{{ o.public_id }}</h1>
+    <div class="small-muted">{{ o.created_at.strftime('%d %b %Y %H:%M') if o.created_at else '' }} &nbsp;•&nbsp; {{ o.pay_mode }}</div>
+  </div>
+  <div class="d-flex gap-2 align-items-center">
+    {% if o.status in ('pending', 'placed') %}<span class="badge-soft" style="color:#f59e0b">⏳ Pending</span>
+    {% elif o.status == 'accepted' %}<span class="badge-soft" style="color:var(--accent)">✅ Accepted</span>
+    {% elif o.status == 'processing' %}<span class="badge-soft" style="color:var(--gold2)">⚙ Processing</span>
+    {% elif o.status in ('ready_to_ship', 'ReadyToShip') %}<span class="badge-soft" style="color:#60a5fa">📦 Ready to Ship</span>
+    {% elif o.status in ('shipped', 'out_for_delivery') %}<span class="badge-soft" style="color:#a78bfa">🚚 Shipped</span>
+    {% elif o.status == 'delivered' %}<span class="badge-soft" style="color:var(--success)">✓ Delivered</span>
+    {% elif o.status == 'cancelled' %}<span class="badge-soft" style="color:var(--danger)">✗ Cancelled</span>
+    {% elif o.status in ('refund', 'refunded') %}<span class="badge-soft" style="color:var(--accent)">↩ Refund Completed</span>
+    {% elif o.status in ('rto', 'rto_delivered') %}<span class="badge-soft" style="color:var(--danger)">⚠ Returned to Origin</span>
+    {% else %}<span class="badge-soft">{{ o.status }}</span>{% endif %}
+    <a href="/orders/{{ o.id }}/invoice" target="_blank" class="btn btn-sm btn-outline-light">🖨️ Invoice</a>
+  </div>
+</div>
+
+<!-- Cancelled / Refunded status box -->
+{% if o.status == 'cancelled' %}
+<div class="card p-4 mb-4" style="border-color:rgba(248,113,113,0.25)">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+    <span style="width:9px;height:9px;border-radius:50%;background:var(--danger);flex-shrink:0"></span>
+    <span style="font-weight:700;color:var(--danger);font-size:0.95rem">
+      Cancelled{% if o.cancelled_at %} on {{ o.cancelled_at.strftime('%d %b, %I:%M %p') }}{% endif %}
+    </span>
+  </div>
+  <div class="small-muted" style="font-size:0.85rem;margin-left:17px">
+    {{ o.cancel_reason or 'Order was cancelled.' }}
+  </div>
+</div>
+{% elif o.status in ('refund', 'refunded') %}
+<div class="card p-4 mb-4" style="border-color:rgba(167,139,250,0.25)">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+    <span style="width:9px;height:9px;border-radius:50%;background:var(--accent);flex-shrink:0"></span>
+    <span style="font-weight:700;color:var(--accent);font-size:0.95rem">Refund Completed</span>
+    {% if o.refund_id %}<span class="small-muted" style="font-size:0.78rem">(Refund ID: {{ o.refund_id }})</span>{% endif %}
+  </div>
+  <div class="small-muted" style="font-size:0.85rem;margin-left:17px">
+    ₹{{ "%.2f"|format(o.refund_amount) if o.refund_amount else "%.2f"|format(o.total_amount) }} was added to your wallet
+    {% if o.refund_completed_at %} on {{ o.refund_completed_at.strftime('%d %b, %I:%M %p') }}{% endif %}.
+  </div>
+</div>
+{% endif %}
+
+<!-- Order Progress Steps -->
+{% if o.status not in ('cancelled','rto','rto_delivered','refund','refunded') %}
+<div class="card p-4 mb-4" style="overflow:hidden">
+  {% set step_map = {'placed':0,'pending':0,'confirmed':0,'accepted':1,'processing':1,'ready_to_ship':2,'ReadyToShip':2,'shipped':3,'Shipped':3,'out_for_delivery':3,'Delivered':4,'delivered':4} %}
+  {% set cur = step_map.get(o.status, 0) %}
+  {% set step_labels = [(0,'Order\nPlaced','📋',o.created_at),(1,'Accepted','✅',o.created_at),(2,'Packed','📦',None),(3,'Shipped','🚚',o.shipped_at),(4,'Delivered','🎉',o.delivered_at)] %}
+  <!-- Progress bar -->
+  <div style="position:relative;margin-bottom:8px">
+    <div style="position:absolute;top:20px;left:10%;right:10%;height:3px;background:var(--border2);border-radius:999px;z-index:0"></div>
+    <div style="position:absolute;top:20px;left:10%;height:3px;background:linear-gradient(90deg,var(--accent),var(--success));border-radius:999px;z-index:1;width:{{ [0,25,50,75,100][cur] }}%;transition:width .6s ease"></div>
+    <div class="d-flex justify-content-between" style="position:relative;z-index:2">
+      {% for i, label, icon, ts in step_labels %}
+      <div class="text-center" style="flex:1">
+        <div style="width:42px;height:42px;border-radius:50%;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:1.15rem;transition:all .3s;
+          {% if i < cur %}background:rgba(52,211,153,0.15);border:2px solid var(--success)
+          {% elif i == cur %}background:rgba(155,31,232,0.15);border:2px solid var(--accent);box-shadow:0 0 0 4px rgba(155,31,232,0.1)
+          {% else %}background:var(--card);border:2px solid var(--border2){% endif %}">{{ icon }}</div>
+        <div style="font-size:0.7rem;white-space:pre-line;{% if i<=cur %}color:var(--text);font-weight:600{% else %}color:var(--muted){% endif %}">{{ label }}</div>
+        {% if ts and i <= cur %}
+        <div style="font-size:0.6rem;color:var(--muted);margin-top:2px">{{ ts.strftime('%d %b') if ts else '' }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  <!-- Status message -->
+  {% if o.status in ('pending','placed','confirmed') %}
+  <div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:10px;padding:10px 14px;margin-top:16px;font-size:0.83rem;color:var(--gold2)">
+    ⏳ Order confirm ho raha hai — seller se approval ka wait karo.
+  </div>
+  {% elif o.status in ('accepted','processing') %}
+  <div style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:10px;padding:10px 14px;margin-top:16px;font-size:0.83rem;color:var(--success)">
+    ✅ Order accepted! Seller pack kar raha hai.
+  </div>
+  {% elif o.status in ('ready_to_ship','ReadyToShip') %}
+  <div style="background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.2);border-radius:10px;padding:10px 14px;margin-top:16px;font-size:0.83rem;color:#60a5fa">
+    📦 Package ready — courier pickup ka wait hai.
+  </div>
+  {% elif o.status in ('shipped','Shipped','out_for_delivery') %}
+  <div style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.2);border-radius:10px;padding:10px 14px;margin-top:16px;font-size:0.83rem;color:#a78bfa">
+    🚚 {% if o.status == 'out_for_delivery' %}Out for delivery! Aaj milega.{% else %}Order on the way!{% endif %}
+    {% if tracking_info and tracking_info.etd %} Expected: <strong>{{ tracking_info.etd }}</strong>{% endif %}
+  </div>
+  {% elif o.status in ('delivered','Delivered') %}
+  <div style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);border-radius:10px;padding:10px 14px;margin-top:16px;font-size:0.83rem;color:var(--success)">
+    🎉 Delivered! Khush ho? Review zaroor do 😊
+  </div>
+  {% endif %}
+</div>
+{% elif o.status in ('rto','rto_delivered') %}
+<div class="card p-4 mb-4" style="border-color:rgba(239,68,68,0.2)">
+  <div style="color:#f87171;font-weight:600;margin-bottom:4px">⚠️ Return to Origin</div>
+  <div class="small-muted" style="font-size:0.83rem">Delivery unsuccessful thi. Package wapas seller ke paas ja raha hai. Refund process hoga.</div>
+</div>
+{% endif %}
+
+<!-- Live Tracking -->
+{% if o.awb %}
+<div class="card p-4 mb-4" style="border-color:rgba(96,165,250,0.2)">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <div class="section-label">Live Tracking</div>
+      <div class="fw-semibold" style="font-size:1rem">{{ o.courier_name or "Courier" }} &nbsp;<span class="small-muted" style="font-size:0.8rem">AWB: {{ o.awb }}</span></div>
+    </div>
+    {% if o.tracking_url %}<a href="{{ o.tracking_url }}" target="_blank" class="btn btn-sm btn-outline-light" style="border-radius:8px">Track ↗</a>{% endif %}
+  </div>
+  <div class="d-flex gap-3 flex-wrap mb-3">
+    {% if o.shipped_at %}<div><div class="small-muted" style="font-size:0.72rem">Shipped</div><div class="fw-semibold" style="font-size:0.85rem">{{ o.shipped_at.strftime('%d %b %Y') if o.shipped_at else '' }}</div></div>{% endif %}
+    {% if tracking_info and tracking_info.etd %}<div><div class="small-muted" style="font-size:0.72rem">Expected By</div><div class="fw-semibold" style="font-size:0.85rem;color:var(--success)">{{ tracking_info.etd }}</div></div>{% endif %}
+    {% if o.delivered_at %}<div><div class="small-muted" style="font-size:0.72rem">Delivered</div><div class="fw-semibold" style="font-size:0.85rem;color:var(--success)">{{ o.delivered_at.strftime('%d %b %Y') if o.delivered_at else '' }}</div></div>{% endif %}
+  </div>
+  {% if tracking_info and tracking_info.history %}
+  <div style="border-left:2px solid var(--border2);padding-left:16px;margin-left:4px">
+    {% for event in tracking_info.history[:6] %}
+    <div class="mb-3 position-relative">
+      <div style="position:absolute;left:-21px;top:3px;width:10px;height:10px;border-radius:50%;background:{% if loop.first %}var(--accent){% else %}var(--border2){% endif %};border:2px solid {% if loop.first %}var(--accent){% else %}var(--border){% endif %}"></div>
+      <div class="fw-semibold" style="font-size:0.85rem;{% if loop.first %}color:var(--text){% else %}color:var(--muted){% endif %}">{{ event.get('activity','') }}</div>
+      <div class="small-muted" style="font-size:0.75rem">{{ event.get('date','') }}{% if event.get('location') %} &nbsp;·&nbsp; 📍 {{ event.get('location','') }}{% endif %}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="small-muted" style="font-size:0.82rem">Tracking update aane tak thoda wait karo.</div>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card p-4 mb-3">
+      <div class="fw-semibold mb-3">Items Ordered</div>
+      {% for it in items %}
+      <div class="d-flex gap-3 mb-3 pb-3" style="border-bottom:1px solid var(--border2)">
+        <div style="flex:1">
+          <div class="fw-semibold">{{ it.title }}</div>
+          {% if it.size or it.color %}<div class="small-muted" style="font-size:0.82rem">{% if it.size %}Size: {{ it.size }}{% endif %}{% if it.color %} · Color: {{ it.color }}{% endif %}</div>{% endif %}
+          <div class="small-muted" style="font-size:0.8rem">Qty: {{ it.qty }} × ₹{{ "%.2f"|format(it.price) }}</div>
+        </div>
+        <div class="fw-bold">₹{{ "%.2f"|format(it.line_total) }}</div>
+      </div>
+      {% endfor %}
+      <div class="d-flex justify-content-between mt-1"><div class="small-muted">Subtotal</div><div>₹{{ "%.2f"|format(o.subtotal) }}</div></div>
+      <div class="d-flex justify-content-between mt-1"><div class="small-muted">GST</div><div>₹{{ "%.2f"|format(o.gst_total) }}</div></div>
+      <div class="d-flex justify-content-between mt-1"><div class="small-muted">Shipping</div><div>₹{{ "%.2f"|format(o.shipping) }}</div></div>
+      {% if o.discount %}<div class="d-flex justify-content-between mt-1"><div class="small-muted">Discount</div><div style="color:var(--success)">-₹{{ "%.2f"|format(o.discount) }}</div></div>{% endif %}
+      <div class="hr my-2"></div>
+      <div class="d-flex justify-content-between fw-bold"><div>Total</div><div>₹{{ "%.2f"|format(o.total_amount) }}</div></div>
+    </div>
+
+    {% if o.status in ('pending','placed','confirmed','accepted') %}
+    <form method="post" action="/orders/cancel/{{ o.id }}" id="cancelOrderForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <select name="cancel_reason" class="form-select mb-2" style="font-size:0.85rem;border-radius:10px" required>
+        <option value="">Select a reason for cancellation</option>
+        <option value="Ordered by mistake">Ordered by mistake</option>
+        <option value="Found a better price elsewhere">Found a better price elsewhere</option>
+        <option value="Delivery time is too long">Delivery time is too long</option>
+        <option value="Want to change address / item / quantity">Want to change address / item / quantity</option>
+        <option value="No longer needed">No longer needed</option>
+        <option value="Other">Other</option>
+      </select>
+      <button class="btn w-100" type="submit" style="background:rgba(239,68,68,0.1);border-color:rgba(239,68,68,0.3);color:#f87171" onclick="return confirm('Order cancel karna hai?')">Cancel Order</button>
+    </form>
+    {% elif o.status == 'delivered' %}
+    <a href="/return/{{ items[0].id }}" class="btn btn-outline-light w-100 mb-3">↩ Return / Refund Request</a>
+
+    <!-- REVIEW SECTION — per item -->
+    {% for it in items %}
+    <div class="card p-4 mb-3" style="border-color:rgba(124,58,237,0.2)">
+      <div class="fw-semibold mb-1" style="font-size:0.88rem">⭐ Rate: {{ it.title[:40] }}</div>
+
+      {% if existing_reviews.get(it.product_id) %}
+      {% set rev = existing_reviews[it.product_id] %}
+      <!-- Already reviewed -->
+      <div style="background:rgba(52,211,153,0.06);border-radius:10px;padding:12px;margin-top:8px">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          {% for s in range(1,6) %}
+          <span style="font-size:1.2rem;color:{% if s <= rev.rating %}#f59e0b{% else %}#3f3f46{% endif %}">★</span>
+          {% endfor %}
+          <span class="small-muted" style="font-size:0.78rem">Tumhara review</span>
+        </div>
+        {% if rev.comment %}<p style="font-size:0.85rem;margin:0;color:var(--text)">{{ rev.comment }}</p>{% endif %}
+        {% if review_images.get(it.product_id) %}
+        <div class="d-flex gap-2 mt-2 flex-wrap">
+          {% for img_url in review_images[it.product_id] %}
+          <img src="{{ img_url }}" style="height:60px;width:60px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)">
+          {% endfor %}
+        </div>
+        {% endif %}
+        <div class="small-muted mt-2" style="font-size:0.75rem">✓ Submitted</div>
+      </div>
+
+      {% else %}
+      <!-- Review form -->
+      <form method="post" action="/review/{{ it.product_id }}" enctype="multipart/form-data" class="mt-2" id="review-{{ it.product_id }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="redirect_to" value="/orders/{{ o.id }}">
+
+        <!-- Star selector -->
+        <div class="d-flex gap-2 mb-3" id="stars-{{ it.product_id }}">
+          {% for s in [1,2,3,4,5] %}
+          <span onclick="selectStar({{ it.product_id }}, {{ s }})" data-val="{{ s }}"
+                style="font-size:1.8rem;cursor:pointer;color:#3f3f46;transition:color .15s"
+                class="tap-star-{{ it.product_id }}">★</span>
+          {% endfor %}
+        </div>
+        <input type="hidden" name="rating" id="rating-{{ it.product_id }}" value="">
+
+        <textarea class="form-control mb-2" name="comment" rows="2"
+                  placeholder="Product kaisa laga? Share karo..." style="font-size:0.85rem;resize:none;border-radius:10px"></textarea>
+
+        <!-- Photo upload -->
+        <div class="mb-3">
+          <label class="form-label small-muted" style="font-size:0.8rem">📷 Photos add karo (max 2)</label>
+          <div class="d-flex gap-2">
+            <label class="photo-upload-box" for="photo1-{{ it.product_id }}" style="width:64px;height:64px;border:2px dashed var(--border2);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;overflow:hidden">
+              <img id="prev1-{{ it.product_id }}" src="" style="display:none;width:100%;height:100%;object-fit:cover">
+              <span id="icon1-{{ it.product_id }}" style="font-size:1.4rem;color:var(--muted)">+</span>
+            </label>
+            <input type="file" name="photo1" id="photo1-{{ it.product_id }}" accept="image/*" style="display:none"
+                   onchange="previewPhoto(this,'prev1-{{ it.product_id }}','icon1-{{ it.product_id }}')">
+
+            <label class="photo-upload-box" for="photo2-{{ it.product_id }}" style="width:64px;height:64px;border:2px dashed var(--border2);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;overflow:hidden">
+              <img id="prev2-{{ it.product_id }}" src="" style="display:none;width:100%;height:100%;object-fit:cover">
+              <span id="icon2-{{ it.product_id }}" style="font-size:1.4rem;color:var(--muted)">+</span>
+            </label>
+            <input type="file" name="photo2" id="photo2-{{ it.product_id }}" accept="image/*" style="display:none"
+                   onchange="previewPhoto(this,'prev2-{{ it.product_id }}','icon2-{{ it.product_id }}')">
+          </div>
+        </div>
+
+        <button class="btn w-100" type="submit"
+                style="background:#7c3aed;color:#fff;border-radius:10px;font-weight:700;font-size:0.88rem;padding:10px">
+          Submit Review
+        </button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card p-4">
+      <div class="fw-semibold mb-3">Delivery Address</div>
+      <div class="fw-semibold">{{ o.buyer_name }}</div>
+      <div class="small-muted mt-1">{{ o.address }}</div>
+      {% if o.pincode %}<div class="small-muted">PIN: {{ o.pincode }}</div>{% endif %}
+      <div class="small-muted">📞 {{ o.phone }}</div>
+      <div class="hr my-3"></div>
+      <div class="fw-semibold mb-2">Payment</div>
+      <div class="small-muted">{{ o.pay_mode }}
+        {% if o.payment_status == 'paid' %}<span class="badge-soft ms-1" style="color:var(--success);font-size:0.75rem">Paid</span>
+        {% elif o.pay_mode == 'COD' %}<span class="badge-soft ms-1" style="font-size:0.75rem">Collect on Delivery</span>{% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+function selectStar(pid, val) {
+  document.getElementById('rating-' + pid).value = val;
+  document.querySelectorAll('.tap-star-' + pid).forEach(function(s) {
+    s.style.color = parseInt(s.getAttribute('data-val')) <= val ? '#f59e0b' : '#3f3f46';
+  });
+}
+function previewPhoto(input, prevId, iconId) {
+  if (input.files && input.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var img = document.getElementById(prevId);
+      img.src = e.target.result;
+      img.style.display = 'block';
+      document.getElementById(iconId).style.display = 'none';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+// Auto-select rating from URL params (coming from orders page star click)
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var rating = parseInt(params.get("rating"));
+  var pid    = parseInt(params.get("product"));
+  if (rating && pid && rating >= 1 && rating <= 5) {
+    selectStar(pid, rating);
+    var el = document.getElementById("review-" + pid);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+})();
+</script>
+{% endblock %}

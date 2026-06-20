@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="card p-4 p-lg-5">
+      <span class="section-label">Earn Money</span>
+      <h1 class="mb-2">Reseller Ban Jao 💰</h1>
+      <p class="small-muted mb-4">Xoptime ke products share karo — ghar baithe paise kamao. Koi investment nahi, koi risk nahi.</p>
+
+      <div class="row g-3 mb-4">
+        {% for tip in [('🛍️','Products Choose Karo','Lakhon products mein se apni pasand ke products chunno'),('💰','Apna Margin Lagao','Aap decide karo kitna profit lena hai'),('📲','WhatsApp pe Share Karo','Apne network mein share karo custom link se'),('🏦','Paisa Wallet Mein Aao','Har delivery ke baad earning wallet mein')] %}
+        <div class="col-sm-6">
+          <div class="d-flex gap-3 p-3" style="border:1px solid var(--border2);border-radius:14px;height:100%">
+            <div style="font-size:1.8rem">{{ tip[0] }}</div>
+            <div><div class="fw-semibold" style="font-size:0.9rem">{{ tip[1] }}</div><div class="small-muted" style="font-size:0.8rem">{{ tip[2] }}</div></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="hr"></div>
+      <div class="form-section-head mt-3">Apni Shop Setup Karo</div>
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-3">
+          <label class="form-label">Shop Name *</label>
+          <input class="form-control input" name="shop_name" placeholder="e.g. Priya's Fashion Store" required>
+        </div>
+        <div class="mb-4">
+          <label class="form-label">Bio (Optional)</label>
+          <textarea class="form-control input" name="bio" rows="2" placeholder="Apne baare mein kuch likhein..."></textarea>
+        </div>
+        <button class="btn btn-primary w-100 py-2" type="submit" style="font-size:1rem">🚀 Start Reselling — Free!</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

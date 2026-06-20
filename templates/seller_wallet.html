@@ -1,0 +1,131 @@
+{% extends "seller_layout.html" %}
+{% block seller %}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <div>
+    <span class="section-label">Seller Panel</span>
+    <h1 class="mb-1">💰 Wallet & Payouts</h1>
+    <p class="small-muted mb-0">Your earnings, commissions and payout history.</p>
+  </div>
+  {% if wallet_stats.pending_payout > 0 %}
+  <form method="post" action="/seller/payout-request" onsubmit="return confirm('₹{{ wallet_stats.pending_payout|round(2) }} ka payout request bhejein?')">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-primary" type="submit">
+      💸 Request Payout ₹{{ "%.0f"|format(wallet_stats.pending_payout) }}
+    </button>
+  </form>
+  {% endif %}
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="kpi">
+      <div class="kpi-icon">📈</div>
+      <div class="kpi-label">Total Earned</div>
+      <div class="kpi-value" style="color:var(--success)">₹{{ "%.2f"|format(wallet_stats.total_earned) }}</div>
+      <div class="kpi-sub">After platform commission</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi">
+      <div class="kpi-icon">⏳</div>
+      <div class="kpi-label">Pending Payout</div>
+      <div class="kpi-value" style="color:var(--gold2)">₹{{ "%.2f"|format(wallet_stats.pending_payout) }}</div>
+      <div class="kpi-sub">Will be transferred soon</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi">
+      <div class="kpi-icon">✅</div>
+      <div class="kpi-label">Total Paid Out</div>
+      <div class="kpi-value">₹{{ "%.2f"|format(wallet_stats.total_paid) }}</div>
+      <div class="kpi-sub">Already transferred</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi">
+      <div class="kpi-icon">🏦</div>
+      <div class="kpi-label">Platform Commission</div>
+      <div class="kpi-value" style="color:var(--rose)">₹{{ "%.2f"|format(wallet_stats.total_commission) }}</div>
+      <div class="kpi-sub">Deducted from sales</div>
+    </div>
+  </div>
+</div>
+
+<!-- Bank Details -->
+<div class="card p-4 mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <span class="section-label">Payment Details</span>
+      <h3 class="mb-0">Bank / UPI Info</h3>
+    </div>
+    <a href="/seller/profile" class="btn btn-sm btn-outline-light">Edit</a>
+  </div>
+  {% if seller.bank_account or seller.upi_id %}
+    <div class="row g-3">
+      {% if seller.bank_account %}
+      <div class="col-md-6">
+        <div class="small-muted mb-1">Bank Account</div>
+        <div class="fw-semibold">{{ seller.bank_name or '—' }} — {{ seller.bank or '—' }}</div>
+        <div class="small-muted">A/C: {{ seller.bank_account }} &nbsp;|&nbsp; IFSC: {{ seller.bank_ifsc or '—' }}</div>
+      </div>
+      {% endif %}
+      {% if seller.upi_id %}
+      <div class="col-md-6">
+        <div class="small-muted mb-1">UPI ID</div>
+        <div class="fw-semibold">{{ seller.upi_id }}</div>
+      </div>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="alert alert-warning mb-0">
+      ⚠️ Bank details nahi hain. Payouts receive karne ke liye <a href="/seller/profile">Profile</a> mein add karo.
+    </div>
+  {% endif %}
+</div>
+
+<!-- Transaction History -->
+<div class="card p-4">
+  <span class="section-label">History</span>
+  <h3 class="mb-3">Transaction Log</h3>
+
+  {% if transactions %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Order</th>
+          <th>Type</th>
+          <th class="text-end">Sale Amount</th>
+          <th class="text-end">Commission</th>
+          <th class="text-end">Net Amount</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in transactions %}
+        <tr>
+          <td class="small-muted">{{ t.created_at.strftime('%Y-%m-%d') if t.created_at else '' }}</td>
+          <td>{% if t.public_id %}<span class="fw-semibold">#{{ t.public_id }}</span>{% else %}—{% endif %}</td>
+          <td><span class="badge-soft">{{ t.type or 'sale' }}</span></td>
+          <td class="text-end">₹{{ "%.2f"|format(t.amount or 0) }}</td>
+          <td class="text-end" style="color:var(--rose)">-₹{{ "%.2f"|format(t.commission or 0) }}</td>
+          <td class="text-end fw-semibold" style="color:var(--success)">₹{{ "%.2f"|format(t.net_amount or 0) }}</td>
+          <td>
+            <span class="badge-soft {% if t.status=='paid' %}badge-success{% elif t.status=='earned' %}badge-warn{% else %}badge-soft{% endif %}">
+              {{ t.status }}
+            </span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="alert alert-warning mb-0">Koi transactions nahi hain abhi.</div>
+  {% endif %}
+</div>
+
+{% endblock %}

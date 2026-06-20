@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-2 d-none d-lg-block">
+    <div class="sidebar">
+      <div class="sidebar-title">Seller Panel</div>
+      <a href="/seller/dashboard" class="{% if request.path=="/seller/dashboard" %}active{% endif %}"><span class="s-icon">📊</span>Dashboard</a>
+      <a href="/seller/analytics" class="{% if request.path=="/seller/analytics" %}active{% endif %}"><span class="s-icon">📈</span>Analytics</a>
+      <a href="/seller/products" class="{% if "/seller/products" in request.path %}active{% endif %}"><span class="s-icon">📦</span>Products</a>
+      <a href="/seller/orders" class="{% if "/seller/orders" in request.path %}active{% endif %}"><span class="s-icon">🛒</span>Orders</a>
+      <a href="/seller/returns" class="{% if "/seller/returns" in request.path %}active{% endif %}"><span class="s-icon">🔄</span>Returns</a>
+      <a href="/seller/wallet" class="{% if "/seller/wallet" in request.path %}active{% endif %}"><span class="s-icon">💰</span>Wallet</a>
+      <a href="/seller/bulk-upload" class="{% if "/seller/bulk" in request.path %}active{% endif %}"><span class="s-icon">📥</span>Bulk Upload</a>
+      <a href="/seller/profile" class="{% if "/seller/profile" in request.path %}active{% endif %}"><span class="s-icon">👤</span>Profile & KYC</a>
+      <a href="/support" class="{% if "/support" in request.path %}active{% endif %}"><span class="s-icon">🎫</span>Support</a>
+    </div>
+  </div>
+  <div class="col-lg-10">
+    {% block seller %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="mb-4">
+  <span class="section-label">Saved Items</span>
+  <h1 class="mb-0">My Wishlist</h1>
+</div>
+
+{% if items %}
+<div class="row g-3">
+  {% for p in items %}
+  <div class="col-6 col-md-3">
+    <div class="card prod-card p-0 overflow-hidden h-100 d-flex flex-column">
+      <div style="position:relative">
+        <a href="/p/{{ p.id }}">
+          <img src="{{ p.image_url or url_for('static', filename='placeholder.png') }}" alt="{{ p.title }}" class="prod-img" style="height:190px;border-radius:0" loading="lazy">
+        </a>
+        <form method="post" action="/wishlist/toggle/{{ p.id }}" style="position:absolute;top:8px;right:8px">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button class="btn btn-sm" type="submit" style="background:rgba(7,8,13,0.7);border:none;padding:4px 8px;border-radius:8px" title="Remove from wishlist">✕</button>
+        </form>
+        {% if p.mrp and p.mrp > p.price %}
+        <span style="position:absolute;top:8px;left:8px;background:var(--danger);color:#fff;font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:999px">
+          {{ "%.0f"|format(((p.mrp-p.price)/p.mrp)*100) }}% OFF
+        </span>
+        {% endif %}
+      </div>
+      <div class="p-3 d-flex flex-column" style="flex:1">
+        <div class="small-muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em">{{ p.category }}</div>
+        <a href="/p/{{ p.id }}" class="text-decoration-none" style="flex:1">
+          <div class="prod-title mt-1">{{ p.title[:50] }}{% if p.title|length > 50 %}…{% endif %}</div>
+        </a>
+        <div class="d-flex align-items-baseline gap-2 mt-2 mb-2">
+          <span class="prod-price">₹{{ "%.0f"|format(p.price) }}</span>
+          {% if p.mrp and p.mrp > p.price %}<span class="prod-mrp">₹{{ "%.0f"|format(p.mrp) }}</span>{% endif %}
+        </div>
+        {% if p.stock > 0 %}
+        <form method="post" action="/cart/add/{{ p.id }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input type="hidden" name="qty" value="1">
+          <button class="btn btn-primary w-100 btn-sm" type="submit">🛒 Add to Cart</button>
+        </form>
+        {% else %}
+        <button class="btn btn-sm w-100" disabled style="opacity:0.5;border:1px solid var(--border2)">Out of Stock</button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="empty text-center">
+  <div style="font-size:3rem;margin-bottom:12px">♡</div>
+  <h3>Your wishlist is empty</h3>
+  <p class="small-muted">Save products you love and buy them later.</p>
+  <a href="/" class="btn btn-primary mt-2">Explore Products</a>
+</div>
+{% endif %}
+
+{% endblock %}
