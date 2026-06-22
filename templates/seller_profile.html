@@ -1,0 +1,331 @@
+{% extends "seller_layout.html" %}
+{% block seller %}
+<style>
+.kyc-stepper { display:flex; gap:0; margin-bottom:32px; }
+.kyc-step {
+  flex:1; display:flex; flex-direction:column; align-items:center;
+  position:relative; cursor:default;
+}
+.kyc-step:not(:last-child)::after {
+  content:''; position:absolute; top:20px; left:50%; width:100%; height:2px;
+  background:var(--border2); z-index:0;
+}
+.kyc-step.done:not(:last-child)::after { background:var(--success); }
+.kyc-circle {
+  width:40px; height:40px; border-radius:50%; display:flex; align-items:center;
+  justify-content:center; font-size:1rem; font-weight:700; position:relative; z-index:1;
+  border:2px solid var(--border2); background:var(--bg2); color:var(--muted);
+  transition:all .3s;
+}
+.kyc-step.done .kyc-circle   { background:rgba(52,211,153,0.15); border-color:var(--success); color:var(--success); }
+.kyc-step.active .kyc-circle { background:rgba(167,139,250,0.15); border-color:var(--accent); color:var(--accent); }
+.kyc-label { font-size:0.72rem; margin-top:6px; color:var(--muted); text-align:center; font-weight:600; text-transform:uppercase; letter-spacing:0.05em; }
+.kyc-step.done .kyc-label   { color:var(--success); }
+.kyc-step.active .kyc-label { color:var(--accent); }
+.kyc-card {
+  border:1px solid var(--border2); border-radius:16px; padding:28px;
+  background:rgba(255,255,255,0.02); margin-bottom:16px;
+}
+.kyc-card.done-card   { border-color:rgba(52,211,153,0.3); background:rgba(52,211,153,0.04); }
+.kyc-card.active-card { border-color:rgba(167,139,250,0.3); background:rgba(167,139,250,0.04); }
+.kyc-tag { display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;font-size:0.72rem;font-weight:700; }
+.kyc-tag.verified { background:rgba(52,211,153,0.15); color:var(--success); }
+.kyc-tag.pending  { background:rgba(251,191,36,0.15); color:#fbbf24; }
+.kyc-tag.todo     { background:rgba(255,255,255,0.06); color:var(--muted); }
+.int-badge { display:inline-block;font-size:0.68rem;padding:2px 8px;background:rgba(59,130,246,0.12);color:#93c5fd;border:1px solid rgba(59,130,246,0.25);border-radius:6px;margin-left:8px;vertical-align:middle; }
+</style>
+
+<div class="mb-4 d-flex justify-content-between align-items-end flex-wrap gap-2">
+  <div><span class="section-label">Account</span><h1 class="mb-0">Seller Profile & KYC</h1></div>
+  {% if kyc_pan and kyc_gstin and kyc_bank %}
+  <span class="kyc-tag verified" style="font-size:0.8rem;padding:5px 14px">✓ KYC Complete</span>
+  {% else %}
+  <span class="kyc-tag pending" style="font-size:0.8rem;padding:5px 14px">⏳ KYC Incomplete</span>
+  {% endif %}
+</div>
+
+<!-- KYC STEPPER -->
+<div class="kyc-stepper">
+  <div class="kyc-step {% if kyc_pan %}done{% elif not kyc_gstin and not kyc_bank %}active{% endif %}">
+    <div class="kyc-circle">{% if kyc_pan %}✓{% else %}1{% endif %}</div>
+    <div class="kyc-label">PAN Verify</div>
+  </div>
+  <div class="kyc-step {% if kyc_gstin %}done{% elif kyc_pan and not kyc_gstin %}active{% endif %}">
+    <div class="kyc-circle">{% if kyc_gstin %}✓{% else %}2{% endif %}</div>
+    <div class="kyc-label">GST Verify</div>
+  </div>
+  <div class="kyc-step {% if kyc_bank %}done{% elif kyc_pan and kyc_gstin and not kyc_bank %}active{% endif %}">
+    <div class="kyc-circle">{% if kyc_bank %}✓{% else %}3{% endif %}</div>
+    <div class="kyc-label">Bank / UPI</div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+
+    <!-- STEP 1: PAN -->
+    <div class="kyc-card {% if kyc_pan %}done-card{% else %}active-card{% endif %}">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="fw-bold">Step 1 — PAN Verification <span class="int-badge">🔌 Surepass API Ready</span></div>
+        {% if kyc_pan %}<span class="kyc-tag verified">✓ Verified</span>{% else %}<span class="kyc-tag todo">Pending</span>{% endif %}
+      </div>
+      {% if kyc_pan %}
+      <div class="d-flex align-items-center gap-3 p-3" style="background:rgba(52,211,153,0.06);border-radius:10px">
+        <span style="font-size:1.5rem">🪪</span>
+        <div><div class="fw-semibold" style="color:var(--success)">PAN Verified</div><div class="small-muted">{{ seller.pan }}</div></div>
+        <button type="button" onclick="document.getElementById('panForm').classList.toggle('d-none')" class="btn btn-sm btn-outline-light ms-auto">Edit</button>
+      </div>
+      <div id="panForm" class="d-none mt-3">
+      {% else %}
+      <p class="small-muted mb-3" style="font-size:0.82rem">PAN verify hone ke baad aapko seller payouts milenge.</p>
+      <div id="panForm">
+      {% endif %}
+        <form method="post" action="/seller/kyc/pan">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label">PAN Number *</label>
+              <input class="form-control input" name="pan" value="{{ seller.pan or '' }}" placeholder="ABCDE1234F" maxlength="10" style="text-transform:uppercase" required>
+              <div class="small-muted mt-1" style="font-size:0.72rem">5 letters + 4 digits + 1 letter</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Name on PAN</label>
+              <input class="form-control input" name="name_on_pan" value="{{ seller.name }}" placeholder="As on PAN card">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Date of Birth</label>
+              <input class="form-control input" name="dob" type="date">
+            </div>
+          </div>
+          <button class="btn btn-primary mt-3">Verify PAN →</button>
+          <div class="small-muted mt-2" style="font-size:0.75rem">🔒 Data encrypted. DPDP compliant.</div>
+        </form>
+      </div>
+    </div>
+
+    <!-- STEP 2: GST -->
+    <div class="kyc-card {% if kyc_gstin %}done-card{% elif kyc_pan %}active-card{% endif %}"
+         {% if not kyc_pan %}style="opacity:0.45;pointer-events:none"{% endif %}>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="fw-bold">Step 2 — GST Verification <span class="int-badge">🔌 Govt API Ready</span></div>
+        {% if kyc_gstin %}<span class="kyc-tag verified">✓ Verified</span>
+        {% elif not kyc_pan %}<span class="kyc-tag todo">🔒 Step 1 pehle</span>
+        {% else %}<span class="kyc-tag todo">Pending</span>{% endif %}
+      </div>
+      {% if kyc_gstin %}
+      <div class="d-flex align-items-center gap-3 p-3" style="background:rgba(52,211,153,0.06);border-radius:10px">
+        <span style="font-size:1.5rem">📋</span>
+        <div><div class="fw-semibold" style="color:var(--success)">GSTIN Verified</div><div class="small-muted">{{ seller.gstin }}</div></div>
+        <button type="button" onclick="document.getElementById('gstForm').classList.toggle('d-none')" class="btn btn-sm btn-outline-light ms-auto">Edit</button>
+      </div>
+      <div id="gstForm" class="d-none mt-3">
+      {% else %}
+      <p class="small-muted mb-3" style="font-size:0.82rem">GSTIN se aapki business legitimacy confirm hoti hai.</p>
+      <div id="gstForm">
+      {% endif %}
+        <form method="post" action="/seller/kyc/gst">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">GSTIN *</label>
+              <input class="form-control input" name="gstin" value="{{ seller.gstin or '' }}" placeholder="22AAAAA0000A1Z5" maxlength="15" style="text-transform:uppercase" required>
+              <div class="small-muted mt-1" style="font-size:0.72rem">15-character GST number</div>
+            </div>
+            <div class="col-md-6 d-flex align-items-end gap-2">
+              <button class="btn btn-primary">Verify GST →</button>
+              <a href="/seller/kyc/skip-gst" class="btn btn-outline-light" style="font-size:0.82rem">Skip (Exempt)</a>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- STEP 3: BANK -->
+    <div class="kyc-card {% if kyc_bank %}done-card{% elif kyc_pan %}active-card{% endif %}"
+         {% if not kyc_pan %}style="opacity:0.45;pointer-events:none"{% endif %}>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="fw-bold">Step 3 — Bank / UPI Verification <span class="int-badge">🔌 Penny Drop Ready</span></div>
+        {% if kyc_bank %}<span class="kyc-tag verified">✓ Verified</span>
+        {% elif not kyc_pan %}<span class="kyc-tag todo">🔒 Step 1 pehle</span>
+        {% else %}<span class="kyc-tag todo">Pending</span>{% endif %}
+      </div>
+      {% if kyc_bank %}
+      <div class="d-flex align-items-center gap-3 p-3" style="background:rgba(52,211,153,0.06);border-radius:10px">
+        <span style="font-size:1.5rem">🏦</span>
+        <div>
+          <div class="fw-semibold" style="color:var(--success)">Bank/UPI Verified</div>
+          <div class="small-muted">
+            {% if seller.bank_account %}A/C ••••{{ seller.bank_account[-4:] }} · {{ seller.bank_ifsc }}{% endif %}
+            {% if seller.upi_id %} | UPI: {{ seller.upi_id }}{% endif %}
+          </div>
+        </div>
+        <button type="button" onclick="document.getElementById('bankForm').classList.toggle('d-none')" class="btn btn-sm btn-outline-light ms-auto">Edit</button>
+      </div>
+      <div id="bankForm" class="d-none mt-3">
+      {% else %}
+      <div id="bankForm">
+      {% endif %}
+        <div class="d-flex gap-2 mb-4">
+          <button type="button" id="tabBank" onclick="switchTab('bank')" class="btn btn-sm btn-primary">🏦 Bank Account</button>
+          <button type="button" id="tabUpi"  onclick="switchTab('upi')"  class="btn btn-sm btn-outline-light">📱 UPI ID</button>
+        </div>
+
+        <form method="post" action="/seller/kyc/bank" id="formBank">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Account Holder Name</label>
+              <input class="form-control input" name="bank_name" value="{{ seller.bank_name or seller.name }}">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Bank Name</label>
+              <input class="form-control input" name="bank_bank" value="{{ seller.bank_bank or seller.bank or '' }}" placeholder="HDFC, SBI, Kotak...">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Account Number *</label>
+              <input class="form-control input" name="bank_account" value="{{ seller.bank_account or '' }}" placeholder="Account number" required>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">IFSC Code *</label>
+              <input class="form-control input" name="bank_ifsc" id="ifscInput" value="{{ seller.bank_ifsc or '' }}"
+                placeholder="HDFC0001234" maxlength="11" style="text-transform:uppercase"
+                oninput="fetchBankName(this.value)" required>
+              <div id="ifscResult" class="mt-1" style="font-size:0.72rem"></div>
+            </div>
+          </div>
+          <div class="p-3 mt-3" style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:10px">
+            <div class="small-muted" style="font-size:0.78rem">💡 <strong style="color:var(--text)">Penny Drop:</strong> ₹1 aapke account confirm karne ke liye bheja jaega. Set <code style="color:#93c5fd">SUREPASS_TOKEN</code> in .env for live mode.</div>
+          </div>
+          <button class="btn btn-primary mt-3">Verify Bank →</button>
+        </form>
+
+        <form method="post" action="/seller/kyc/bank" id="formUpi" class="d-none">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">UPI ID *</label>
+              <input class="form-control input" name="upi_id" value="{{ seller.upi_id or '' }}" placeholder="name@okicici" required>
+              <div class="small-muted mt-1" style="font-size:0.72rem">e.g. 9876543210@upi</div>
+            </div>
+          </div>
+          <button class="btn btn-primary mt-3">Save UPI →</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Basic Info -->
+    <div class="card p-4 mt-2">
+      <div class="fw-bold mb-3" style="color:rgba(255,255,255,0.6)">📝 Basic Business Info</div>
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row g-3">
+          <div class="col-md-6"><label class="form-label">Phone</label>
+            <input class="form-control input" name="phone" value="{{ seller.phone or '' }}" maxlength="10" placeholder="10-digit mobile"></div>
+          <div class="col-md-6"><label class="form-label">State</label>
+            <select class="form-select input" name="state">
+              <option value="">Select State</option>
+              {% for st in ["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Delhi","Jammu & Kashmir","Ladakh","Puducherry"] %}
+              <option value="{{ st }}" {% if seller.state == st %}selected{% endif %}>{{ st }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-12"><label class="form-label">Business Address</label>
+            <textarea class="form-control input" name="address" rows="2">{{ seller.address or '' }}</textarea></div>
+          <div class="col-md-4"><label class="form-label">Pincode</label>
+            <input class="form-control input" name="pincode" value="{{ seller.pincode or '' }}" maxlength="6"></div>
+        </div>
+        <button class="btn btn-outline-light mt-3">Save Info</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="col-lg-4">
+    <div class="card p-4 mb-3">
+      <div class="fw-bold mb-3">KYC Status</div>
+      {% set done_count = ([kyc_pan, kyc_gstin, kyc_bank] | select | list | length) %}
+      {% set kpct = (done_count / 3 * 100) | int %}
+      <div class="d-flex justify-content-between mb-1">
+        <span class="small-muted">Completion</span>
+        <span class="fw-bold" style="color:{% if kpct==100 %}var(--success){% elif kpct>33 %}#fbbf24{% else %}var(--danger){% endif %}">{{ kpct }}%</span>
+      </div>
+      <div style="height:6px;background:var(--border2);border-radius:999px;margin-bottom:16px">
+        <div style="height:6px;border-radius:999px;width:{{ kpct }}%;background:{% if kpct==100 %}var(--success){% elif kpct>33 %}#fbbf24{% else %}var(--danger){% endif %}"></div>
+      </div>
+      {% for label, done, detail in [
+          ("PAN Verified", kyc_pan, seller.pan or "Not added"),
+          ("GST Verified", kyc_gstin, seller.gstin or "Not added"),
+          ("Bank/UPI Verified", kyc_bank, (seller.bank_account or seller.upi_id or "Not added"))
+        ] %}
+      <div class="d-flex align-items-start gap-2 mb-3 p-2" style="border-radius:8px;background:rgba(255,255,255,0.02)">
+        <span>{% if done %}✅{% else %}⭕{% endif %}</span>
+        <div>
+          <div style="font-size:0.83rem;font-weight:600;color:{% if done %}var(--success){% else %}var(--text){% endif %}">{{ label }}</div>
+          <div class="small-muted" style="font-size:0.72rem">{{ detail[:25] }}{% if detail|length > 25 %}…{% endif %}</div>
+        </div>
+      </div>
+      {% endfor %}
+      {% if kpct == 100 %}
+      <div class="p-3 mt-1 text-center" style="background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.25);border-radius:10px">
+        <div style="font-size:1.4rem">🎉</div>
+        <div class="fw-semibold" style="color:var(--success)">KYC Complete!</div>
+        <div class="small-muted" style="font-size:0.75rem">Payouts enabled</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="card p-4 mb-3">
+      <div class="fw-bold mb-2">Payout Schedule</div>
+      <div class="vstack gap-2" style="font-size:0.83rem">
+        <div class="d-flex justify-content-between"><span class="small-muted">Cycle</span><strong>Every 7 days (T+7)</strong></div>
+        <div class="d-flex justify-content-between"><span class="small-muted">Minimum</span><strong>₹100</strong></div>
+        <div class="d-flex justify-content-between"><span class="small-muted">Commission</span><strong>10% platform fee</strong></div>
+      </div>
+      <a href="/seller/wallet" class="btn btn-outline-light w-100 btn-sm mt-3">View Wallet →</a>
+    </div>
+
+    <div class="card p-3" style="border-color:rgba(59,130,246,0.3);background:rgba(59,130,246,0.05)">
+      <div class="fw-semibold mb-2" style="font-size:0.85rem;color:#93c5fd">🔌 Live KYC Integration</div>
+      <div class="small-muted" style="font-size:0.75rem;line-height:1.7">
+        <code>.env</code> mein set karo:<br>
+        <code style="color:#93c5fd">SUREPASS_TOKEN=your_key</code><br><br>
+        Routes ready for:<br>
+        • PAN → Surepass /pan-comprehensive<br>
+        • GST → Govt GST API<br>
+        • Bank → Penny Drop API
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(tab) {
+  const fBank = document.getElementById('formBank');
+  const fUpi  = document.getElementById('formUpi');
+  const tBank = document.getElementById('tabBank');
+  const tUpi  = document.getElementById('tabUpi');
+  if (tab === 'bank') {
+    fBank.classList.remove('d-none'); fUpi.classList.add('d-none');
+    tBank.className = 'btn btn-sm btn-primary'; tUpi.className = 'btn btn-sm btn-outline-light';
+  } else {
+    fUpi.classList.remove('d-none'); fBank.classList.add('d-none');
+    tUpi.className = 'btn btn-sm btn-primary'; tBank.className = 'btn btn-sm btn-outline-light';
+  }
+}
+async function fetchBankName(ifsc) {
+  const el = document.getElementById('ifscResult');
+  if (!el || ifsc.length !== 11) { if(el) el.textContent=''; return; }
+  el.innerHTML = '<span class="small-muted">Checking...</span>';
+  try {
+    const r = await fetch(`https://ifsc.razorpay.com/${ifsc}`);
+    if (r.ok) {
+      const d = await r.json();
+      el.innerHTML = `<span style="color:var(--success);font-size:0.75rem">✓ ${d.BANK} — ${d.BRANCH}, ${d.CITY}</span>`;
+    } else { el.innerHTML = '<span style="color:var(--danger);font-size:0.75rem">Invalid IFSC</span>'; }
+  } catch(e) { el.textContent = ''; }
+}
+['pan','gstin','bank_ifsc'].forEach(n => {
+  document.querySelector(`[name="${n}"]`)?.addEventListener('input', function() { this.value = this.value.toUpperCase(); });
+});
+</script>
+{% endblock %}

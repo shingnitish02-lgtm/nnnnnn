@@ -1,0 +1,69 @@
+{% extends "admin_layout.html" %}
+{% block admin %}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <div>
+    <span class="section-label">Returns</span>
+    <h1 class="mb-0">Return Requests</h1>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="?status=pending" class="btn btn-sm {% if status=='pending' %}btn-primary{% else %}btn-outline-light{% endif %}">Pending</a>
+    <a href="?status=approved" class="btn btn-sm {% if status=='approved' %}btn-primary{% else %}btn-outline-light{% endif %}">Approved</a>
+    <a href="?status=rejected" class="btn btn-sm {% if status=='rejected' %}btn-primary{% else %}btn-outline-light{% endif %}">Rejected</a>
+    <a href="?status=" class="btn btn-sm {% if not status %}btn-primary{% else %}btn-outline-light{% endif %}">All</a>
+  </div>
+</div>
+
+<div class="card p-3">
+  {% if returns %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr><th>Order</th><th>Product</th><th>Buyer</th><th>Seller</th><th>Reason</th><th>Status</th><th>Date</th><th class="text-end">Action</th></tr>
+      </thead>
+      <tbody>
+        {% for r in returns %}
+        <tr>
+          <td class="fw-semibold">#{{ r.public_id }}</td>
+          <td>
+            <div class="fw-semibold" style="font-size:0.88rem">{{ r.title[:35] }}{% if r.title|length > 35 %}…{% endif %}</div>
+            <div class="small-muted">₹{{ "%.0f"|format(r.line_total) }} × {{ r.qty }}</div>
+          </td>
+          <td class="small-muted">{{ r.buyer_name }}</td>
+          <td class="small-muted">{{ r.seller_name }}</td>
+          <td style="max-width:140px;font-size:0.83rem">{{ r.reason }}</td>
+          <td>
+            {% if r.status == 'pending' %}<span class="badge-warn">Pending</span>
+            {% elif r.status == 'approved' %}<span class="badge-success">Approved</span>
+            {% elif r.status == 'rejected' %}<span class="badge-danger">Rejected</span>
+            {% else %}<span class="badge-soft">{{ r.status }}</span>{% endif %}
+          </td>
+          <td class="small-muted">{{ r.created_at.strftime('%Y-%m-%d') if r.created_at else '' }}</td>
+          <td class="text-end">
+            {% if r.status == 'pending' %}
+            <div class="d-flex gap-1 justify-content-end">
+              <form method="post" action="/admin/returns/{{ r.id }}/approve">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-primary">Approve</button>
+              </form>
+              <form method="post" action="/admin/returns/{{ r.id }}/reject">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-danger">Reject</button>
+              </form>
+            </div>
+            {% else %}<span class="small-muted">—</span>{% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty text-center">
+    <div style="font-size:2.5rem;margin-bottom:10px">🔄</div>
+    <p class="small-muted mb-0">No return requests{% if status %} with status "{{ status }}"{% endif %}.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,124 @@
+{% extends "admin_layout.html" %}
+{% block admin %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h1 class="h4 fw-bold mb-1">Users</h1>
+    <div class="small-muted">Platform ke saare registered users</div>
+  </div>
+</div>
+
+<!-- Search + Filter -->
+<form class="row g-2 mb-3" method="get">
+  <div class="col-md-5">
+    <input class="form-control input" name="q" value="{{ q or '' }}" placeholder="Naam ya email se search karo…">
+  </div>
+  <div class="col-md-3">
+    <select class="form-select input" name="role">
+      <option value="">All Roles</option>
+      <option value="buyer" {% if role=='buyer' %}selected{% endif %}>Buyers</option>
+      <option value="seller" {% if role=='seller' %}selected{% endif %}>Sellers</option>
+      <option value="admin" {% if role=='admin' %}selected{% endif %}>Admins</option>
+    </select>
+  </div>
+  <div class="col-md-2"><button class="btn btn-primary w-100">Search</button></div>
+  {% if q or role %}<div class="col-md-2"><a href="/admin/users" class="btn btn-outline-light w-100">Clear</a></div>{% endif %}
+</form>
+
+<div class="card p-3">
+  {% if users %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th class="text-end">Action</th></tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td class="fw-semibold">{{ u.name }}</td>
+          <td class="small-muted">{{ u.email }}</td>
+          <td><span class="badge-soft">{{ u.role }}</span></td>
+          <td>
+            {% if u.seller_status == 'suspended' or u.seller_status == 'deleted' %}
+              <span class="badge-soft" style="color:var(--rose)">{{ u.seller_status }}</span>
+            {% else %}
+              <span class="badge-soft" style="color:var(--success)">active</span>
+            {% endif %}
+          </td>
+          <td class="small-muted">{{ u.created_at.strftime('%Y-%m-%d') if u.created_at else '' }}</td>
+          <td class="text-end">
+            <div class="d-flex gap-1 justify-content-end">
+              {% if u.role != 'admin' and u.seller_status != 'deleted' %}
+                {% if u.seller_status == 'suspended' %}
+                  <form method="post" action="/admin/users/{{ u.id }}/unban">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-sm btn-outline-light">Unban</button>
+                  </form>
+                {% else %}
+                  <form method="post" action="/admin/users/{{ u.id }}/ban">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-sm" style="color:#f59e0b;border-color:rgba(245,158,11,0.3)" onclick="return confirm('{{ u.name }} ko ban karna hai?')">Ban</button>
+                  </form>
+                {% endif %}
+                <button class="btn btn-sm" style="color:var(--rose);border-color:rgba(239,68,68,0.3)"
+                  onclick="openDeleteModal({{ u.id }}, '{{ u.name }}', '{{ u.email }}')">🗑️ Delete</button>
+              {% else %}
+                <span class="small-muted">—</span>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="alert alert-warning mb-0">Koi users nahi mile.</div>
+  {% endif %}
+</div>
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content bg-dark border-danger">
+      <div class="modal-header border-danger">
+        <h5 class="modal-title text-danger">⚠️ User Permanently Delete Karo</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" id="deleteForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="modal-body">
+          <p class="text-white mb-1">Yeh action <strong>permanent</strong> hai aur undo nahi ho sakta!</p>
+          <p class="text-muted small mb-3">User ka saara data (products, orders history, wallet) delete ho jayega.</p>
+          <div class="mb-3">
+            <label class="form-label text-muted small">User</label>
+            <input type="text" id="deleteUserInfo" class="form-control form-control-sm bg-dark text-white border-secondary" readonly>
+          </div>
+          <div class="mb-3">
+            <label class="form-label text-muted small">Reason (optional)</label>
+            <input type="text" name="reason" class="form-control form-control-sm bg-dark text-white border-secondary" placeholder="e.g. Fraud, Spam, Request...">
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" id="confirmCheck" onchange="document.getElementById('confirmDeleteBtn').disabled=!this.checked">
+            <label class="form-check-label text-white small" for="confirmCheck">
+              Haan, main samajhta hun yeh permanent delete hai
+            </label>
+          </div>
+        </div>
+        <div class="modal-footer border-secondary">
+          <button type="button" class="btn btn-sm btn-outline-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" id="confirmDeleteBtn" class="btn btn-sm btn-danger" disabled>🗑️ Permanently Delete</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function openDeleteModal(uid, name, email) {
+  document.getElementById('deleteForm').action = '/admin/users/' + uid + '/delete';
+  document.getElementById('deleteUserInfo').value = name + ' (' + email + ')';
+  document.getElementById('confirmCheck').checked = false;
+  document.getElementById('confirmDeleteBtn').disabled = true;
+  new bootstrap.Modal(document.getElementById('deleteModal')).show();
+}
+</script>
+{% endblock %}

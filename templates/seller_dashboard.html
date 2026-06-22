@@ -1,0 +1,131 @@
+{% extends "seller_layout.html" %}
+{% block seller %}
+
+{% if seller and seller.on_vacation %}
+<div class="vacation-banner d-flex align-items-center gap-3 mb-4">
+  <span style="font-size:1.4rem">🏖️</span>
+  <div style="flex:1">
+    <strong>Vacation Mode ON</strong> — Aap nayi orders nahi le rahe. Buyers aapke products dekh sakte hain lekin order nahi de sakte.
+  </div>
+  <form method="post" action="/seller/vacation">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-sm btn-outline-light" type="submit">Turn OFF</button>
+  </form>
+</div>
+{% endif %}
+
+<div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-2">
+  <div>
+    <span class="section-label">Seller Dashboard</span>
+    <h1 class="mb-1">Welcome back, {{ seller.gstin_name or seller.pan_name or seller.name }} 👋</h1>
+    <p class="small-muted mb-0">Here's what's happening with your store today.</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <a class="btn btn-sm btn-outline-light" href="/shop/{{ session.get('user_id') }}" target="_blank">🏪 My Shop</a>
+    <form method="post" action="/seller/vacation" class="d-inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-sm btn-outline-light" type="submit" style="{% if seller and seller.on_vacation %}color:var(--success){% endif %}">
+        {% if seller and seller.on_vacation %}✅ Vacation OFF{% else %}🏖️ Vacation Mode{% endif %}
+      </button>
+    </form>
+    <a class="btn btn-primary" href="/seller/products/new">+ Add Product</a>
+  </div>
+</div>
+
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="kpi">
+      <div class="kpi-icon">📦</div>
+      <div class="kpi-label">Today's Orders</div>
+      <div class="kpi-value">{{ kpi.today_orders }}</div>
+      <div class="kpi-sub">Orders placed today</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="kpi">
+      <div class="kpi-icon">📈</div>
+      <div class="kpi-label">Last 7 Days</div>
+      <div class="kpi-value">{{ kpi.week_orders }}</div>
+      <div class="kpi-sub">Weekly order count</div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="kpi">
+      <div class="kpi-icon">🏆</div>
+      <div class="kpi-label">Top Product</div>
+      <div class="kpi-value" style="font-size:1.1rem;line-height:1.3">{{ kpi.top_product or "—" }}</div>
+      <div class="kpi-sub">Qty sold: {{ kpi.top_qty or 0 }}</div>
+    </div>
+  </div>
+</div>
+
+<!-- Low Stock -->
+{% if low_stock and low_stock|length > 0 %}
+<div class="card p-4 mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <span class="section-label">⚠️ Low Stock Alert</span>
+      <h3 class="mb-0">Restock Needed</h3>
+    </div>
+    <a class="btn btn-sm btn-outline-light" href="/seller/products">Manage Inventory</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead>
+        <tr>
+          <th>Product</th>
+          <th class="text-end">Stock</th>
+          <th class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in low_stock %}
+        <tr>
+          <td><a href="/seller/products/{{ p.id }}/edit">{{ p.title }}</a></td>
+          <td class="text-end">
+            <span class="{% if p.stock==0 %}badge-danger{% else %}badge-warn{% endif %}" style="border-radius:999px;padding:3px 10px;font-size:0.78rem">
+              {{ p.stock }} left
+            </span>
+          </td>
+          <td class="text-end">
+            <a class="btn btn-sm btn-outline-light" href="/seller/products/{{ p.id }}/edit">Edit</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Quick Actions -->
+<div class="card p-4">
+  <span class="section-label">Quick Actions</span>
+  <h3 class="mb-3">What would you like to do?</h3>
+  <div class="row g-3">
+    <div class="col-md-4">
+      <a href="/seller/products/new" class="card p-3 text-decoration-none d-block" style="border-color:rgba(201,168,76,0.2);transition:all .2s" onmouseover="this.style.borderColor='rgba(201,168,76,0.5)'" onmouseout="this.style.borderColor='rgba(201,168,76,0.2)'">
+        <div style="font-size:1.8rem;margin-bottom:8px">➕</div>
+        <div class="fw-semibold" style="color:var(--text)">Add Product</div>
+        <div class="small-muted">List a new item</div>
+      </a>
+    </div>
+    <div class="col-md-4">
+      <a href="/seller/orders" class="card p-3 text-decoration-none d-block" style="border-color:rgba(167,139,250,0.2);transition:all .2s" onmouseover="this.style.borderColor='rgba(167,139,250,0.5)'" onmouseout="this.style.borderColor='rgba(167,139,250,0.2)'">
+        <div style="font-size:1.8rem;margin-bottom:8px">🛒</div>
+        <div class="fw-semibold" style="color:var(--text)">Manage Orders</div>
+        <div class="small-muted">View & process orders</div>
+      </a>
+    </div>
+    <div class="col-md-4">
+      <a href="/seller/wallet" class="card p-3 text-decoration-none d-block" style="border-color:rgba(52,211,153,0.2);transition:all .2s" onmouseover="this.style.borderColor='rgba(52,211,153,0.5)'" onmouseout="this.style.borderColor='rgba(52,211,153,0.2)'">
+        <div style="font-size:1.8rem;margin-bottom:8px">💰</div>
+        <div class="fw-semibold" style="color:var(--text)">Wallet</div>
+        <div class="small-muted">Earnings & payouts</div>
+      </a>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

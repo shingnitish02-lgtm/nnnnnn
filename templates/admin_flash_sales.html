@@ -1,0 +1,46 @@
+{% extends "admin_layout.html" %}
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2>⚡ Flash Sales</h2>
+</div>
+
+<div class="card p-4 mb-4">
+  <div class="form-section-head">Create Flash Sale</div>
+  <form method="post" class="row g-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="add">
+    <div class="col-md-6"><label class="form-label">Sale Title *</label><input class="form-control input" name="title" placeholder="Diwali Mega Sale" required></div>
+    <div class="col-md-6"><label class="form-label">Subtitle</label><input class="form-control input" name="subtitle" placeholder="Sab products pe flat discount"></div>
+    <div class="col-md-3"><label class="form-label">Discount %</label><input class="form-control input" name="discount_pct" type="number" min="0" max="100" value="0"></div>
+    <div class="col-md-3"><label class="form-label">Banner Color</label><input class="form-control input" name="banner_color" type="color" value="#8B5CF6"></div>
+    <div class="col-md-3"><label class="form-label">Start (optional)</label><input class="form-control input" name="starts_at" type="datetime-local"></div>
+    <div class="col-md-3"><label class="form-label">End (optional)</label><input class="form-control input" name="ends_at" type="datetime-local"></div>
+    <div class="col-12">
+      <p class="small-muted mb-0" style="font-size:0.82rem">💡 Flash sale products tab dikhenge jab product pe "Flash Sale" tag lage ho. Admin Products page se products pe ⚡ tag lagao.</p>
+    </div>
+    <div class="col-12 d-flex justify-content-end"><button class="btn btn-primary" type="submit">Create Flash Sale</button></div>
+  </form>
+</div>
+
+<div class="card p-0 overflow-hidden">
+  <table class="table mb-0">
+    <thead><tr><th>Title</th><th>Discount</th><th>End Time</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for s in sales %}
+      <tr>
+        <td><div class="fw-semibold">{{ s.title }}</div>{% if s.subtitle %}<div class="small-muted" style="font-size:0.78rem">{{ s.subtitle }}</div>{% endif %}</td>
+        <td>{% if s.discount_pct > 0 %}<span class="badge-danger">{{ s.discount_pct|int }}% OFF</span>{% else %}<span class="small-muted">No auto discount</span>{% endif %}</td>
+        <td>{{ s.ends_at.strftime('%d %b %Y %H:%M') if s.ends_at else 'No limit' }}</td>
+        <td>{% if s.active %}<span class="badge-success">Active</span>{% else %}<span class="badge-danger">Inactive</span>{% endif %}</td>
+        <td>
+          <div class="d-flex gap-2">
+            <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="toggle"><input type="hidden" name="fid" value="{{ s.id }}"><button class="btn btn-sm btn-outline-light">{% if s.active %}Pause{% else %}Activate{% endif %}</button></form>
+            <form method="post" onsubmit="return confirm('Delete?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="delete"><input type="hidden" name="fid" value="{{ s.id }}"><button class="btn btn-sm btn-danger">Delete</button></form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

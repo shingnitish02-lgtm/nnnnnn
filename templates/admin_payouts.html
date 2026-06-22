@@ -1,0 +1,110 @@
+{% extends "admin_layout.html" %}
+{% block admin %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <div>
+    <span class="section-label">Finance</span>
+    <h1 class="mb-0">Seller Payouts</h1>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="?status=pending" class="btn btn-sm {% if request.args.get('status')=='pending' %}btn-primary{% else %}btn-outline-light{% endif %}">Pending</a>
+    <a href="?status=earned" class="btn btn-sm {% if request.args.get('status')=='earned' %}btn-primary{% else %}btn-outline-light{% endif %}">Earned</a>
+    <a href="?status=paid" class="btn btn-sm {% if request.args.get('status')=='paid' %}btn-primary{% else %}btn-outline-light{% endif %}">Paid</a>
+    <a href="?" class="btn btn-sm {% if not request.args.get('status') %}btn-primary{% else %}btn-outline-light{% endif %}">All</a>
+  </div>
+</div>
+
+<!-- Summary Cards -->
+{% set total_pending = txns | selectattr('status','equalto','earned') | map(attribute='net_amount') | list %}
+<div class="row g-3 mb-4">
+  <div class="col-md-4">
+    <div class="kpi">
+      <div class="kpi-icon">⏳</div>
+      <div class="kpi-label">Pending Payouts</div>
+      <div class="kpi-value" style="color:var(--gold2)">
+        ₹{{ "%.2f"|format(txns | selectattr('status','equalto','earned') | sum(attribute='net_amount')) }}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="kpi">
+      <div class="kpi-icon">✅</div>
+      <div class="kpi-label">Total Paid Out</div>
+      <div class="kpi-value" style="color:var(--success)">
+        ₹{{ "%.2f"|format(txns | selectattr('status','equalto','paid') | sum(attribute='net_amount')) }}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="kpi">
+      <div class="kpi-icon">🏦</div>
+      <div class="kpi-label">Platform Commission</div>
+      <div class="kpi-value" style="color:var(--rose)">
+        ₹{{ "%.2f"|format(txns | sum(attribute='commission')) }}
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card p-3">
+  {% if txns %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>Seller</th>
+          <th>Order</th>
+          <th>Date</th>
+          <th class="text-end">Sale</th>
+          <th class="text-end">Commission</th>
+          <th class="text-end">Net Payable</th>
+          <th>Payment Info</th>
+          <th>Status</th>
+          <th class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in txns %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ t.seller_name }}</div>
+            <div class="small-muted" style="font-size:0.78rem">
+              {% if t.bank_account %}🏦 {{ t.bank_account }}{% elif t.upi_id %}📱 {{ t.upi_id }}{% else %}<span style="color:var(--rose)">No bank details</span>{% endif %}
+            </div>
+          </td>
+          <td class="small-muted">{% if t.public_id %}#{{ t.public_id }}{% else %}—{% endif %}</td>
+          <td class="small-muted" style="font-size:0.82rem">{{ t.created_at.strftime('%Y-%m-%d') if t.created_at else '' }}</td>
+          <td class="text-end">₹{{ "%.2f"|format(t.amount or 0) }}</td>
+          <td class="text-end" style="color:var(--rose)">-₹{{ "%.2f"|format(t.commission or 0) }}</td>
+          <td class="text-end fw-bold" style="color:var(--success)">₹{{ "%.2f"|format(t.net_amount or 0) }}</td>
+          <td class="small-muted" style="font-size:0.8rem">
+            {% if t.bank_ifsc %}IFSC: {{ t.bank_ifsc }}{% elif t.upi_id %}UPI: {{ t.upi_id }}{% else %}—{% endif %}
+          </td>
+          <td>
+            {% if t.status == 'paid' %}
+              <span class="badge-soft" style="color:var(--success)">Paid</span>
+            {% elif t.status == 'earned' %}
+              <span class="badge-soft" style="color:#f59e0b">Earned</span>
+            {% else %}
+              <span class="badge-soft">{{ t.status }}</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            {% if t.status == 'earned' %}
+            <form method="post" action="/admin/payouts/mark-paid/{{ t.id }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-sm btn-primary" onclick="return confirm('Mark as paid?')">Mark Paid</button>
+            </form>
+            {% else %}
+              <span class="small-muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="alert alert-warning mb-0">Koi transactions nahi hain.</div>
+  {% endif %}
+</div>
+{% endblock %}

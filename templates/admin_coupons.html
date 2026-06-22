@@ -1,0 +1,49 @@
+{% extends "admin_layout.html" %}
+{% block admin %}
+<h1 class="h4 fw-bold mb-3">Coupons</h1>
+
+<div class="card p-3 mb-3">
+  <form method="post" class="row g-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="col-md-3"><input class="form-control input" name="code" placeholder="CODE (e.g. SAVE10)" required></div>
+    <div class="col-md-2">
+      <select class="form-select input" name="type">
+        <option value="percent">Percent</option>
+        <option value="flat">Flat</option>
+      </select>
+    </div>
+    <div class="col-md-2"><input class="form-control input" name="value" placeholder="Value" required></div>
+    <div class="col-md-2"><input class="form-control input" name="min_cart" placeholder="Min cart" value="0"></div>
+    <div class="col-md-2"><input class="form-control input" name="max_discount" placeholder="Max discount (opt)"></div>
+    <div class="col-md-2"><input class="form-control input" name="expiry" placeholder="Expiry YYYY-MM-DD (opt)"></div>
+    <div class="col-md-2">
+      <select class="form-select input" name="active">
+        <option value="1">Active</option>
+        <option value="0">Inactive</option>
+      </select>
+    </div>
+    <div class="col-md-2 d-grid"><button class="btn btn-primary">Save</button></div>
+  </form>
+</div>
+
+<div class="card p-3">
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>Code</th><th>Type</th><th>Value</th><th>Min cart</th><th>Max</th><th>Active</th><th>Expiry</th></tr></thead>
+      <tbody>
+        {% for c in coupons %}
+        <tr>
+          <td class="fw-semibold">{{ c.code }}</td>
+          <td>{{ c.type }}</td>
+          <td>{{ c.value }}</td>
+          <td>{{ c.min_cart }}</td>
+          <td>{{ c.max_discount or "-" }}</td>
+          <td>{% if c.active %}<span class="badge-soft">Yes</span>{% else %}<span class="badge-soft">No</span>{% endif %}</td>
+          <td>{{ c.expiry or "-" }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

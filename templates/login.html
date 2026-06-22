@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center mt-4">
+  <div class="col-md-5 col-lg-4">
+    <div class="text-center mb-4">
+      <span class="section-label">Welcome Back</span>
+      <h1 class="mb-1">Login Karo</h1>
+      <p class="small-muted">Email daalo — OTP aayega inbox mein</p>
+    </div>
+    <div class="card p-4">
+      <form method="post" action="/login">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-4">
+          <label class="form-label">📧 Email Address</label>
+          <input class="form-control" type="email" name="email" required
+                 placeholder="aapka@gmail.com" autofocus inputmode="email">
+        </div>
+        <button class="btn btn-primary w-100 py-2" type="submit">OTP Bhejo →</button>
+      </form>
+      <div class="text-center small-muted mt-3">
+        Naya account? <a href="/register" style="color:var(--accent)">Register karo</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

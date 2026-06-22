@@ -1,0 +1,22 @@
+{% extends "admin_layout.html" %}
+{% block admin %}
+<h1 class="h4 fw-bold mb-3">Support Tickets</h1>
+<div class="card p-3">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead><tr><th>ID</th><th>User</th><th>Subject</th><th>Status</th><th>Updated</th></tr></thead>
+      <tbody>
+        {% for t in tks %}
+          <tr>
+            <td>#{{ t.id }}</td>
+            <td class="small">{{ t.user_name }}<div class="text-muted">{{ t.user_email }}</div></td>
+            <td><a href="/admin/tickets/{{ t.id }}">{{ t.subject }}</a></td>
+            <td>{{ t.status }}</td>
+            <td class="small text-muted">{{ t.updated_at }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

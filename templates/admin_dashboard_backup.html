@@ -1,0 +1,24 @@
+{% extends "admin_layout.html" %}
+{% block admin %}
+<h1 class="h4 fw-bold mb-3">Admin Dashboard</h1>
+<div class="row g-2 mb-3">
+  <div class="col-md-4"><div class="kpi"><div class="small-muted">Total Users</div><div class="fs-4 fw-bold">{{ k.users }}</div></div></div>
+  <div class="col-md-4"><div class="kpi"><div class="small-muted">Total Products</div><div class="fs-4 fw-bold">{{ k.products }}</div></div></div>
+  <div class="col-md-4"><div class="kpi"><div class="small-muted">Total Orders</div><div class="fs-4 fw-bold">{{ k.orders }}</div></div></div>
+  <div class="col-md-4"><div class="kpi"><div class="small-muted">Today Orders</div><div class="fs-4 fw-bold" style="color:#f59e0b">{{ k.today_orders }}</div></div></div>
+  <div class="col-md-4"><div class="kpi"><div class="small-muted">Today Revenue</div><div class="fs-4 fw-bold" style="color:#22c55e">₹{{ "%.0f"|format(k.today_revenue) }}</div></div></div>
+  <div class="col-md-4"><div class="kpi"><div class="small-muted">This Month</div><div class="fs-4 fw-bold" style="color:#22c55e">₹{{ "%.0f"|format(k.month_revenue) }}</div></div></div>
+  <div class="col-md-4"><div class="kpi"><div class="small-muted">Total Revenue</div><div class="fs-4 fw-bold" style="color:#22c55e">₹{{ "%.0f"|format(k.total_revenue) }}</div></div></div>
+  <div class="col-md-4"><div class="kpi"><div class="small-muted">Pending Orders</div><div class="fs-4 fw-bold" style="color:#f87171">{{ k.pending_orders }}</div></div></div>
+  <div class="col-md-4"><div class="kpi"><div class="small-muted">Pending Payouts</div><div class="fs-4 fw-bold" style="color:#a78bfa">{{ k.pending_payouts }}</div></div></div>
+  <div class="col-md-4"><div class="kpi"><div class="small-muted">Open Tickets</div><div class="fs-4 fw-bold" style="color:#60a5fa">{{ k.open_tickets }}</div></div></div>
+  <div class="col-md-4"><div class="kpi"><div class="small-muted">Pending Returns</div><div class="fs-4 fw-bold" style="color:#fb923c">{{ k.pending_returns }}</div></div></div>
+</div>
+<div class="card p-3">
+  <div class="fw-semibold mb-2">Quick</div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-light" href="/admin/products">Approve products</a>
+    <a class="btn btn-outline-light" href="/admin/payouts">Mark payouts paid</a>
+  </div>
+</div>
+{% endblock %}

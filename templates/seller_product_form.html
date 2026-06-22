@@ -1,0 +1,1473 @@
+{% extends "seller_layout.html" %}
+{% block seller %}
+
+<style>
+/* ── Meesho-style form ─────────────────────── */
+.ms-header {
+  display: flex; align-items: center; gap: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding-bottom: 14px; margin-bottom: 20px;
+}
+.ms-step-bar { display: flex; gap: 0; margin-bottom: 24px; }
+.ms-step {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 20px; font-size: 0.88rem; font-weight: 600;
+  color: rgba(255,255,255,0.4);
+  border-bottom: 3px solid transparent;
+  cursor: default;
+}
+.ms-step.active { color: #fff; border-bottom-color: #7c4dff; }
+.ms-step.done   { color: #6ee7b7; border-bottom-color: #6ee7b7; }
+.ms-step-num {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.75rem; font-weight: 800; flex-shrink: 0;
+}
+.ms-step.active .ms-step-num { background: #7c4dff; color: #fff; }
+.ms-step.done   .ms-step-num { background: #6ee7b7; color: #000; }
+
+/* Category picker */
+.cat-col {
+  background: rgba(255,255,255,0.04);
+  border-right: 1px solid rgba(255,255,255,0.08);
+  height: 420px; overflow-y: auto;
+  min-width: 0;
+  color: rgba(255,255,255,0.85);
+}
+.cat-col:last-child { border-right: none; }
+.cat-item {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 16px; cursor: pointer; font-size: 0.88rem;
+  border-left: 3px solid transparent;
+  transition: all 0.15s;
+  color: rgba(255,255,255,0.85) !important;
+}
+.cat-item:hover  { background: rgba(124,77,255,0.15); color: #fff !important; }
+.cat-item.active { background: rgba(124,77,255,0.25); border-left-color: #7c4dff; color: #fff !important; font-weight: 700; }
+.cat-search {
+  width: 100%; padding: 10px 14px; font-size: 0.88rem;
+  background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px; color: #fff; outline: none;
+  margin-bottom: 12px;
+}
+.cat-search::placeholder { color: rgba(255,255,255,0.3); }
+.cat-breadcrumb {
+  background: rgba(255,255,255,0.04); border-radius: 8px;
+  padding: 10px 16px; font-size: 0.82rem;
+  color: rgba(255,255,255,0.6);
+  margin-top: 12px;
+}
+.cat-preview-box {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 12px; padding: 20px;
+  text-align: center;
+}
+
+/* Product details form */
+.ms-section-title {
+  font-size: 1rem; font-weight: 700; margin: 24px 0 16px;
+  padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.ms-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+.ms-field-row.single { grid-template-columns: 1fr; }
+.ms-field-row.triple { grid-template-columns: 1fr 1fr 1fr; }
+@media(max-width:640px){
+  .ms-field-row, .ms-field-row.triple { grid-template-columns: 1fr; }
+}
+.ms-label {
+  font-size: 0.82rem; color: rgba(255,255,255,0.6);
+  margin-bottom: 5px; display: flex; align-items: center; gap: 4px;
+}
+.ms-label .req { color: #f87171; }
+.ms-label .tip {
+  width: 16px; height: 16px; background: rgba(255,255,255,0.1);
+  border-radius: 50%; display: inline-flex; align-items: center;
+  justify-content: center; font-size: 0.65rem; cursor: help;
+  position: relative;
+}
+.ms-input, .ms-select {
+  width: 100%; padding: 10px 14px; font-size: 0.88rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px; color: #fff; outline: none;
+  transition: border-color 0.15s;
+}
+.ms-input:focus, .ms-select:focus { border-color: #7c4dff; }
+.ms-input::placeholder { color: rgba(255,255,255,0.25); }
+.ms-select option { background: #1a1a2e; }
+textarea.ms-input { resize: vertical; min-height: 100px; }
+.ms-char-count { font-size: 0.72rem; color: rgba(255,255,255,0.3); text-align: right; margin-top: 3px; }
+
+/* Guideline box */
+.guideline-box {
+  background: rgba(255,193,7,0.07);
+  border: 1px solid rgba(255,193,7,0.25);
+  border-radius: 10px; padding: 14px 16px;
+}
+.guideline-box li { font-size: 0.8rem; color: rgba(255,255,255,0.65); margin-bottom: 4px; }
+
+/* Image upload */
+.img-upload-box {
+  border: 1.5px dashed rgba(255,255,255,0.2);
+  border-radius: 10px; padding: 20px;
+  text-align: center; cursor: pointer;
+  transition: border-color 0.2s;
+  background: rgba(255,255,255,0.02);
+}
+.img-upload-box:hover { border-color: #7c4dff; background: rgba(124,77,255,0.05); }
+.img-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.img-preview img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
+
+/* Bottom bar */
+.ms-bottom-bar {
+  position: sticky; bottom: 0;
+  background: rgba(15,15,30,0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  padding: 14px 0; margin-top: 32px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.ms-copy-bar {
+  background: rgba(124,77,255,0.1);
+  border: 1px solid rgba(124,77,255,0.2);
+  border-radius: 10px; padding: 12px 16px;
+  display: flex; align-items: flex-start; gap: 10px;
+  margin-bottom: 20px;
+}
+</style>
+
+<!-- Header -->
+<div class="ms-header">
+  <a href="/seller/products" style="color:rgba(255,255,255,0.5);font-size:1.2rem;text-decoration:none">←</a>
+  <h1 style="font-size:1.2rem;margin:0;font-weight:700">{{ "Edit" if p else "Add Single Catalog" }}</h1>
+</div>
+
+<!-- Step bar -->
+<div class="ms-step-bar">
+  <div class="ms-step {% if not p %}active{% else %}done{% endif %}" id="tab1">
+    <div class="ms-step-num">{% if p %}✓{% else %}1{% endif %}</div>
+    Select Category
+  </div>
+  <div class="ms-step {% if p %}active{% endif %}" id="tab2">
+    <div class="ms-step-num">2</div>
+    Add Product Details
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     STEP 1 — SELECT CATEGORY
+══════════════════════════════════════════ -->
+<div id="stepCat" {% if p %}style="display:none"{% endif %}>
+  <div style="position:relative;margin-bottom:12px">
+    <input class="cat-search" id="catSearch" placeholder="Try Sarees, Tops, Charger, Mugs and more..."
+      oninput="filterCats(this.value)" onkeydown="searchKeyNav(event)" autocomplete="off"
+      style="margin-bottom:0;padding-left:38px">
+    <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:rgba(255,255,255,0.35);font-size:1rem;pointer-events:none">🔍</span>
+    <div id="searchResults" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:999;
+      background:#1a1a2e;border:1px solid rgba(124,77,255,0.4);border-radius:10px;
+      max-height:320px;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,0.5);margin-top:4px"></div>
+  </div>
+
+  <div class="card p-0 mb-3" style="overflow:hidden">
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1.2fr">
+
+      <!-- Level 1 -->
+      <div class="cat-col" id="col1">
+        {% set l1_cats = [
+          ("Fashion", "👗"),
+          ("Electronics", "📱"),
+          ("Home & Kitchen", "🏠"),
+          ("Beauty & Personal Care", "💄"),
+          ("Kids", "🧸"),
+          ("Grocery", "🛒"),
+          ("Sports & Fitness", "🏋️"),
+          ("Books & Stationery", "📚"),
+          ("Toys & Games", "🎮"),
+          ("Bags & Luggage", "👜"),
+          ("Jewellery", "💍"),
+          ("Health & Wellness", "💊"),
+          ("Automotive", "🚗"),
+          ("Pet Supplies", "🐾")
+        ] %}
+        {% for name, icon in l1_cats %}
+        <div class="cat-item" data-l1="{{ name }}" onclick="selectL1(this)">
+          <span>{{ icon }} {{ name }}</span>
+          <span style="color:rgba(255,255,255,0.3)">›</span>
+        </div>
+        {% endfor %}
+      </div>
+
+      <!-- Level 2 -->
+      <div class="cat-col" id="col2">
+        <div style="padding:40px 16px;color:rgba(255,255,255,0.25);font-size:0.82rem;text-align:center">
+          ← Pehle ek category select karo
+        </div>
+      </div>
+
+      <!-- Level 3 -->
+      <div class="cat-col" id="col3">
+        <div style="padding:40px 16px;color:rgba(255,255,255,0.25);font-size:0.82rem;text-align:center">
+          ← Sub-category select karo
+        </div>
+      </div>
+
+      <!-- Preview panel -->
+      <div class="cat-col" id="colPreview" style="padding:16px;border-left:1px solid rgba(255,255,255,0.07)">
+        <div id="previewEmpty" style="color:rgba(255,255,255,0.25);font-size:0.82rem;text-align:center;padding-top:40px">
+          Category select karo
+        </div>
+        <div id="previewContent" style="display:none">
+          <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-bottom:8px" id="breadcrumbTxt"></div>
+          <div class="img-upload-box" onclick="document.getElementById('catImgInput').click()">
+            <div id="catImgPreview">
+              <div style="font-size:2rem">📸</div>
+              <div style="font-size:0.8rem;color:rgba(255,255,255,0.5);margin-top:6px">
+                Please provide only front image for each product
+              </div>
+            </div>
+          </div>
+          <input type="file" id="catImgInput" accept="image/*" style="display:none" onchange="previewCatImg(this)">
+          <button type="button" class="btn btn-primary w-100 mt-3" id="addImgBtn" onclick="document.getElementById('catImgInput').click()" style="background:#7c4dff;border:none">
+            + Add Product Images
+          </button>
+          <div class="guideline-box mt-3">
+            <div style="font-size:0.78rem;font-weight:700;color:#ffc107;margin-bottom:6px">⚠️ Follow guidelines to reduce quality check failure</div>
+            <div style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.7);margin-bottom:4px">General Guidelines</div>
+            <ol class="ps-3 mb-0">
+              <li>You can add minimum 1 and maximum 9 products to create a catalog</li>
+              <li>Images with text/watermark are not acceptable</li>
+              <li>Product image should not have any text</li>
+              <li>Please add solo product image without any props</li>
+            </ol>
+          </div>
+          <button type="button" class="btn btn-primary w-100 mt-3" onclick="goToDetails()" id="proceedBtn" style="background:#7c4dff;border:none;display:none">
+            Next: Add Product Details →
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">
+    <a href="/seller/products" class="btn btn-outline-light btn-sm">Discard Catalog</a>
+    <button type="button" class="btn btn-primary btn-sm" onclick="goToDetails()" id="nextBtn" disabled style="background:#7c4dff;border:none">
+      Next →
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     STEP 2 — ADD PRODUCT DETAILS
+══════════════════════════════════════════ -->
+<div id="stepDetails" {% if not p %}style="display:none"{% endif %}>
+
+  <form method="post" enctype="multipart/form-data" id="productForm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="category" id="f_category" value="{{ p.category if p else '' }}">
+  <input type="hidden" name="catalog_name" id="f_catalog_name" value="{{ p.catalog_name if p and p.catalog_name else '' }}">
+
+  <!-- Copy details bar -->
+  <div class="ms-copy-bar">
+    <input type="checkbox" id="copyToAll" checked style="margin-top:2px;flex-shrink:0">
+    <div>
+      <div style="font-size:0.85rem;font-weight:600">Copy input details to all product</div>
+      <div style="font-size:0.78rem;color:rgba(255,255,255,0.45)">If you want to change specific fields for particular product like Color, Fabric etc., you can change by selecting that product.</div>
+    </div>
+  </div>
+
+  <!-- ── SECTION: Product, Size and Inventory ── -->
+  <div class="ms-section-title">Product, Size and Inventory</div>
+
+  <div class="ms-field-row">
+    <div>
+      <div class="ms-label">GST <span class="req">*</span></div>
+      <select class="ms-select" name="gst_percent" id="f_gst_percent" required>
+        <option value="">Select</option>
+        {% set gv = p.gst_percent|float if p and p.gst_percent else -1 %}
+        <option value="0"  {% if gv==0  %}selected{% endif %}>0% — Exempt</option>
+        <option value="5"  {% if gv==5  %}selected{% endif %}>5% — Clothes ₹1000 tak, footwear</option>
+        <option value="12" {% if gv==12 %}selected{% endif %}>12% — Clothes ₹1000+</option>
+        <option value="18" {% if gv==18 %}selected{% endif %}>18% — Electronics, accessories</option>
+        <option value="28" {% if gv==28 %}selected{% endif %}>28% — Luxury goods</option>
+      </select>
+    </div>
+    <div>
+      <div class="ms-label">HSN Code <span class="req">*</span>
+        <span class="tip" title="Harmonized System of Nomenclature — tax classification code">ℹ</span>
+      </div>
+      <input class="ms-input" name="hsn" id="f_hsn" placeholder="Category select karne pe auto-fill hoga" value="{{ p.hsn if p and p.hsn else '' }}" readonly style="cursor:not-allowed;opacity:0.8">
+      <div style="margin-top:4px;display:flex;justify-content:space-between;align-items:center">
+        <span id="hsnNote" style="font-size:0.72rem;color:#6ee7b7">✅ Category se auto-fill hoga</span>
+        <a href="https://www.gstn.org.in/hsn-sac-code" target="_blank" style="font-size:0.75rem;color:#7c4dff">Manual ›</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="ms-field-row">
+    <div>
+      <div class="ms-label">Net Weight (gms) <span class="req">*</span>
+        <span class="tip" title="Packing ke saath total weight">ℹ</span>
+      </div>
+      <input class="ms-input" name="weight_grams" id="f_weight_grams" type="number" min="0"
+        placeholder="Enter Net Weight (gms)" value="{{ p.weight_grams if p and p.weight_grams else '' }}">
+    </div>
+    <div>
+      <div class="ms-label">Style code / Product ID
+        <span class="tip" title="Apna internal product code (optional)">ℹ</span>
+        <span style="font-size:0.72rem;color:rgba(255,255,255,0.3)">(optional)</span>
+      </div>
+      <input class="ms-input" name="style_code" placeholder="Enter Style code / Product ID (opt)"
+        value="{{ p.style_code if p and p.style_code else '' }}">
+    </div>
+  </div>
+
+  <div class="ms-field-row">
+    <div>
+      <div class="ms-label">Product Name <span class="req">*</span>
+        <span class="tip" title="SEO optimized title — 80 chars max">ℹ</span>
+      </div>
+      <input class="ms-input" name="title" id="f_title" required
+        placeholder="Enter Product Name"
+        value="{{ p.title if p else '' }}">
+    </div>
+    <div>
+      <div class="ms-label">MRP <span class="req">*</span></div>
+      <div style="display:flex;gap:8px">
+        <div style="flex:1">
+          <input class="ms-input" name="mrp" id="f_mrp" type="number" step="1" min="0"
+            placeholder="MRP" value="{{ p.mrp if p and p.mrp else '' }}">
+          <div style="font-size:0.72rem;color:rgba(255,255,255,0.3);margin-top:2px">Original price (crossed out)</div>
+        </div>
+        <div style="flex:1">
+          <input class="ms-input" name="price" id="f_price" type="number" step="1" min="0" required
+            placeholder="Selling Price" value="{{ p.price if p else '' }}">
+          <div style="font-size:0.72rem;color:rgba(255,255,255,0.3);margin-top:2px">Actual selling price <span class="req">*</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="ms-field-row">
+    <div>
+      <div class="ms-label">Size <span class="req">*</span></div>
+      <select class="ms-select" name="size_options" id="f_size_options">
+        <option value="">Select Size</option>
+        {% set ALL_SIZES = ["XS","S","M","L","XL","XXL","3XL","4XL","Free Size","28","30","32","34","36","38","40","42","44","Mini","Compact","Standard","Large","One Size","6 inch","6.5 inch","7 inch","Small","Medium","Extra Large","500 ml","750 ml","1 L","1.5 L","2 L","3 L","5 L","Set of 3","Set of 6","20L","30L","40L","50L","55 cm","65 cm","75 cm","5 ml","10 ml","15 ml","30 ml","50 ml","100 ml","150 ml","200 ml","250 ml","Travel Size","Full Size","0-6 Months","6-12 Months","1-2 Years","2-3 Years","3-4 Years","4-5 Years","5-6 Years","6-7 Years","7-8 Years","8-9 Years","9-10 Years","5 mm","6 mm","8 mm","10 mm","A4","A5","A6","B5","Pocket Size","100g","200g","250g","500g","1 Kg","2 Kg","5 Kg","Small (Hatchback)","Medium (Sedan)","Large (SUV)","Universal"] %}
+        {% for s in ALL_SIZES %}
+        <option value="{{ s }}" {% if p and p.size_options == s %}selected{% endif %}>{{ s }}</option>
+        {% endfor %}
+      </select>
+      <div style="font-size:0.72rem;color:rgba(255,255,255,0.3);margin-top:5px">Category select hone pe sizes filter honge</div>
+    </div>
+
+  <!-- ── SIZE CHART BUILDER ── -->
+  <div class="ms-field-row" style="margin-top:20px;display:block">
+    <div class="ms-label" style="margin-bottom:8px">📏 Size Chart <span style="font-size:0.72rem;color:rgba(255,255,255,0.35);font-weight:400">(Optional — buyers ko dikhega)</span></div>
+
+    <!-- Quick Templates -->
+    <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <span style="font-size:0.75rem;color:rgba(255,255,255,0.4);align-self:center">Quick fill:</span>
+      <button type="button" onclick="loadSizeTemplate('clothing')" class="sc-tpl-btn">👕 Clothing</button>
+      <button type="button" onclick="loadSizeTemplate('footwear')" class="sc-tpl-btn">👟 Footwear</button>
+      <button type="button" onclick="loadSizeTemplate('kids')"     class="sc-tpl-btn">🧒 Kids</button>
+      <button type="button" onclick="loadSizeTemplate('custom')"   class="sc-tpl-btn">✏️ Custom</button>
+      <button type="button" onclick="clearSizeChart()"             class="sc-tpl-btn" style="border-color:rgba(239,68,68,0.4);color:#f87171">🗑 Clear</button>
+    </div>
+
+    <!-- Size Chart Table Builder -->
+    <div style="overflow-x:auto;border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.03)">
+      <table style="width:100%;border-collapse:collapse;min-width:500px" id="scTable">
+        <thead>
+          <tr id="scHeaderRow" style="border-bottom:1px solid rgba(255,255,255,0.1)">
+            <th style="padding:10px 12px;font-size:0.78rem;color:rgba(255,255,255,0.5);text-align:left;min-width:80px">Size Label</th>
+            <!-- dynamic columns added by JS -->
+          </tr>
+        </thead>
+        <tbody id="scBody">
+          <!-- dynamic rows -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Add row/col buttons -->
+    <div style="display:flex;gap-8px;margin-top:10px;gap:8px;flex-wrap:wrap">
+      <button type="button" onclick="scAddRow()" style="padding:6px 14px;font-size:0.78rem;border:1px solid rgba(255,255,255,0.15);background:transparent;color:rgba(255,255,255,0.7);border-radius:8px;cursor:pointer">+ Row</button>
+      <button type="button" onclick="scAddCol()" style="padding:6px 14px;font-size:0.78rem;border:1px solid rgba(255,255,255,0.15);background:transparent;color:rgba(255,255,255,0.7);border-radius:8px;cursor:pointer">+ Column</button>
+    </div>
+
+    <div style="font-size:0.72rem;color:rgba(255,255,255,0.3);margin-top:6px">Table edit karo → auto save hoga form mein</div>
+
+    <!-- Hidden JSON field -->
+    <input type="hidden" name="size_chart_data" id="size_chart_data" value="{{ p.size_chart_data if p and p.size_chart_data else '' }}">
+  </div>
+
+  <style>
+  .sc-tpl-btn {
+    padding: 5px 12px; font-size: 0.75rem;
+    border: 1px solid rgba(167,139,250,0.35);
+    background: rgba(167,139,250,0.08);
+    color: rgba(167,139,250,0.9);
+    border-radius: 8px; cursor: pointer;
+  }
+  .sc-tpl-btn:hover { background: rgba(167,139,250,0.18); }
+  #scTable td input {
+    background: transparent; border: none; outline: none;
+    color: rgba(255,255,255,0.85); font-size: 0.82rem;
+    width: 100%; padding: 4px 2px;
+  }
+  #scTable td { padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  #scTable th { white-space: nowrap; }
+  .sc-del-col { cursor:pointer; color: rgba(239,68,68,0.6); font-size:0.8rem; padding: 0 6px; }
+  .sc-del-row { cursor:pointer; color: rgba(239,68,68,0.5); font-size:0.75rem; }
+  </style>
+    <div>
+      <div class="ms-label">Stock <span class="req">*</span></div>
+      <input class="ms-input" name="stock" id="f_stock" type="number" min="0" required
+        placeholder="Enter Stock Quantity" value="{{ p.stock if p else '' }}">
+    </div>
+  </div>
+
+  <!-- ── SECTION: Product Details ── -->
+  <div class="ms-section-title">Product Details</div>
+
+  <div class="ms-field-row">
+    <div>
+      <div class="ms-label">Closure <span class="req">*</span></div>
+      <select class="ms-select" name="closure" id="f_closure">
+        <option value="">Select Closure</option>
+        {% for opt in ["Zip","Button","Snap","Hook","Drawstring","Velcro","Magnetic","Open","Flap","Buckle"] %}
+        <option value="{{ opt }}" {% if p and p.closure == opt %}selected{% endif %}>{{ opt }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <div class="ms-label">Color <span class="req">*</span></div>
+      <select class="ms-select" name="color_options" id="f_color_options">
+        <option value="">Select Color</option>
+        {% set ALL_COLORS = ["Black","White","Red","Blue","Green","Yellow","Pink","Purple","Orange","Brown","Grey","Navy","Maroon","Beige","Cream","Gold","Silver","Multicolor","Sky Blue","Mint","Peach","Lavender","Coral","Teal","Mustard","Olive","Rust","Turquoise","Magenta","Charcoal","Off White","Dark Blue","Light Blue","Dark Green","Light Green","Dark Red","Rose Gold","Copper","Bronze","Ivory","Khaki","Wine","Indigo","Violet"] %}
+        {% for clr in ALL_COLORS %}
+        <option value="{{ clr }}" {% if p and p.color_options == clr %}selected{% endif %}>{{ clr }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="ms-field-row">
+    <div>
+      <div class="ms-label">Fold Type <span class="req">*</span></div>
+      <select class="ms-select" name="fold_type" id="f_fold_type">
+        <option value="">Select Fold Type</option>
+        {% for opt in ["Foldable","Non-Foldable","Rollable","Flat Pack","Retractable","Detachable","Stackable","Collapsible","Nested","Packable","Assembly Required","Spiral","Hardcover","Paperback","Resealable","Vacuum Packed","Airtight","Portable","Compact","Travel Size","Adjustable","Fixed"] %}
+        <option value="{{ opt }}" {% if p and p.fold_type == opt %}selected{% endif %}>{{ opt }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <div class="ms-label">Generic Name <span class="req">*</span>
+        <span class="tip" title="Common name of the product">ℹ</span>
+      </div>
+      <select class="ms-select" name="generic_name" id="f_generic_name">
+        <option value="">Select Generic Name</option>
+        {% set ALL_GENERIC = ["Kurti","Kurta","Saree","Lehenga","Top","T-Shirt","Shirt","Jeans","Trouser","Dress","Skirt","Palazzo","Jacket","Blazer","Dupatta","Salwar Suit","Night Suit","Bra","Panty","Vest","Boxer","Shorts","Mobile Phone","Laptop","Charger","Earphones","Headphones","Power Bank","Keyboard","Mouse","Smartwatch","Smart Speaker","Fan","Iron","Mixer","Juicer","Screen Guard","Mobile Cover","Cookware Set","Frying Pan","Water Bottle","Lunch Box","Storage Container","Knife","Bedsheet","Blanket","Pillow","Curtain","Mattress","Chair","Table","Clock","Photo Frame","Candle","Vase","Backpack","Handbag","Wallet","Clutch","Sling Bag","Tote Bag","Laptop Bag","Trolley Bag","Duffel Bag","Waist Bag","Passport Holder","Gym Bag","Face Wash","Moisturizer","Sunscreen","Serum","Shampoo","Conditioner","Hair Oil","Lipstick","Foundation","Kajal","Perfume","Soap","Deodorant","Face Pack","Toner","Blush","Necklace","Earrings","Bangles","Ring","Bracelet","Anklet","Maang Tikka","Chain","Pendant","Toy","Doll","Board Game","Puzzle","School Bag","Yoga Mat","Dumbbell","Resistance Band","Skipping Rope","Cricket Bat","Football","Badminton Racket","Sports Shoes","Track Pant","Notebook","Diary","Pen","Pencil","Calculator","Dog Food","Cat Food","Pet Toy","Dog Collar","Pet Bed"] %}
+        {% for g in ALL_GENERIC %}
+        <option value="{{ g }}" {% if p and p.generic_name == g %}selected{% endif %}>{{ g }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="ms-field-row">
+    <div>
+      <div class="ms-label">Material <span class="req">*</span></div>
+      <select class="ms-select" name="material" id="f_material">
+        <option value="">Select Material</option>
+        {% set ALL_MATERIAL = ["100% Cotton","Cotton Blend","Pure Silk","Art Silk","Georgette","Chiffon","Crepe","Rayon","Polyester","Linen","Denim","Velvet","Net","Lycra","Wool","Khadi","Chanderi","Pure Cotton","Viscose","Jersey","Nylon","Spandex","Plastic","ABS Plastic","Metal","Aluminium","Stainless Steel","Rubber","Silicone","Glass","Carbon Fibre","Polycarbonate","TPU","Cast Iron","Non-Stick Coated","Ceramic","Bamboo","Wood","Copper","Iron","Melamine","Borosilicate Glass","Hard Anodised","Granite Coated","PU Leather","Genuine Leather","Canvas","Jute","Rexine","Faux Leather","Fabric","Oxford Cloth","Mesh","Velvet","Suede","Paraben-Free","Sulphate-Free","Natural","Organic","Ayurvedic","Vegan","Cruelty-Free","Herbal","Gold Plated","Silver Plated","Rose Gold Plated","Oxidised Silver","Brass","German Silver","Sterling Silver","Alloy","Kundan","Meenakari","Pearl","Rhodium Plated","NBR Foam","TPE","Natural Rubber","Neoprene","EVA Foam","Dri-Fit","Quick Dry","Paper","Hardcover","Paperback","Spiral Bound","Leather Bound","Recycled Paper","ABS","Medical Grade","BPA Free","Non-Toxic Plastic","Plush","Foam"] %}
+        {% for m in ALL_MATERIAL %}
+        <option value="{{ m }}" {% if p and p.material == m %}selected{% endif %}>{{ m }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <div class="ms-label">Net Quantity (N) <span class="req">*</span>
+        <span class="tip" title="Number of items in one pack">ℹ</span>
+      </div>
+      <select class="ms-select" name="net_quantity" id="f_net_quantity">
+        <option value="">Select Quantity</option>
+        {% for qty in ["1","2","3","Set of 2","Set of 3","Set of 5","Set of 6","Pack of 3","Pack of 6","Pack of 12","Pair","Combo of 2","Combo of 3"] %}
+        <option value="{{ qty }}" {% if p and p.net_quantity == qty %}selected{% endif %}>{{ qty }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="ms-field-row triple">
+    <div>
+      <div class="ms-label">Product Dimension Unit <span class="req">*</span>
+        <span class="tip" title="Unit for Length, Width, Height">ℹ</span>
+      </div>
+      <select class="ms-select" name="dimension_unit">
+        {% set du = p.dimension_unit if p and p.dimension_unit else 'cm' %}
+        <option value="">Select</option>
+        <option value="cm"   {% if du=='cm'   %}selected{% endif %}>Centimeter (cm)</option>
+        <option value="mm"   {% if du=='mm'   %}selected{% endif %}>Millimeter (mm)</option>
+        <option value="inch" {% if du=='inch' %}selected{% endif %}>Inch</option>
+      </select>
+    </div>
+    <div>
+      <div class="ms-label">Product Height <span class="req">*</span></div>
+      <input class="ms-input" name="product_height" type="number" step="0.01" min="0"
+        placeholder="Enter Product Height"
+        value="{{ p.product_height if p and p.product_height else '' }}">
+    </div>
+    <div>
+      <div class="ms-label">Product Length <span class="req">*</span></div>
+      <input class="ms-input" name="product_length" type="number" step="0.01" min="0"
+        placeholder="Enter Product Length"
+        value="{{ p.product_length if p and p.product_length else '' }}">
+    </div>
+  </div>
+
+  <div class="ms-field-row">
+    <div>
+      <div class="ms-label">Product Width <span class="req">*</span></div>
+      <input class="ms-input" name="product_width" type="number" step="0.01" min="0"
+        placeholder="Enter Product Width"
+        value="{{ p.product_width if p and p.product_width else '' }}">
+    </div>
+    <div>
+      <div class="ms-label">Type <span class="req">*</span></div>
+      <select class="ms-select" name="product_type" id="f_product_type">
+        <option value="">Select Type</option>
+        {% set ALL_TYPES = ["Casual","Formal","Ethnic","Party Wear","Festive","Bridal","Sports","Loungewear","Workwear","Fusion","Traditional","Western","Semi-Formal","Wired","Wireless","Bluetooth","USB-C","Fast Charging","Noise Cancelling","True Wireless","Smart","Portable","Desktop","Gaming","Cooking","Baking","Storage","Serving","Decorative","Multipurpose","Travel","Insulated","Microwave Safe","Dishwasher Safe","Airtight","Leak Proof","College","Office","School","Party","Trekking","Fashion","Moisturizing","Oil Control","Anti-Ageing","Brightening","Hydrating","Nourishing","Gym","Yoga","Running","Cricket","Football","Badminton","Swimming","Cycling","Home Workout","Outdoor","Cardio","Strength Training","Ruled","Plain","Grid","Dotted","Daily Planner","Art Book","Sketch Book","Educational","Action","Creative","Strategy","Indoor","Electronic","Soft","Remote Control","Building","Puzzle","Organic","Regular","Premium","Economy","Diet","Sugar Free","Digital","Manual","Automatic","Rechargeable","Battery Operated","Universal","Waterproof","All Weather","Heavy Duty","Dry Food","Wet Food","Treats","Grooming","Interactive","Chew Toy"] %}
+        {% for t in ALL_TYPES %}
+        <option value="{{ t }}" {% if p and p.product_type == t %}selected{% endif %}>{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <div class="ms-field-row">
+    <div>
+      <div class="ms-label">Country of Origin <span class="req">*</span></div>
+      <select class="ms-select" name="country_of_origin">
+        <option value="">Select</option>
+        <option value="India" {% if not p or p.country_of_origin == 'India' %}selected{% endif %}>India</option>
+        <option value="China" {% if p and p.country_of_origin == 'China' %}selected{% endif %}>China</option>
+        <option value="Bangladesh" {% if p and p.country_of_origin == 'Bangladesh' %}selected{% endif %}>Bangladesh</option>
+        <option value="Other" {% if p and p.country_of_origin == 'Other' %}selected{% endif %}>Other</option>
+      </select>
+    </div>
+    <div>
+      <div class="ms-label">Occasion</div>
+      <select class="ms-select" name="occasion" id="f_occasion">
+        <option value="">Select Occasion</option>
+        {% set ALL_OCCASIONS = ["Casual","Daily Wear","Festive","Party","Wedding","Office","College","Workout","Beach","Bridal","Puja","Gifting","Anniversary","Birthday","Outdoor","Travel","School","Kitchen","Dining","Picnic","Festival","Morning Routine","Night Care","Pre-Makeup","Post-Workout","Special Occasion","Gym","Competition","Training","Study","Professional","Art & Craft","Emergency","Senior Care","Home","All Weather","Protection","Daily Play","Grooming","Outdoor Play"] %}
+        {% for o in ALL_OCCASIONS %}
+        <option value="{{ o }}" {% if p and p.occasion == o %}selected{% endif %}>{{ o }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+
+  <!-- ── SECTION: Manufacturer ── -->
+  <div class="ms-section-title">Manufacturer Details</div>
+
+  <div class="ms-field-row">
+    <div>
+      <div class="ms-label">Manufacturer Name <span class="req">*</span>
+        <span class="tip" title="Legal name of the manufacturer">ℹ</span>
+      </div>
+      <input class="ms-input" name="manufacturer_name" id="mfr_name"
+        placeholder="Enter Manufacturer Name"
+        value="{{ p.manufacturer_name if p and p.manufacturer_name else '' }}">
+    </div>
+    <div>
+      <div class="ms-label">Manufacturer Address <span class="req">*</span>
+        <span class="tip" title="Full address of manufacturer">ℹ</span>
+      </div>
+      <input class="ms-input" name="manufacturer_address" id="mfr_addr"
+        placeholder="Enter Manufacturer Address"
+        value="{{ p.manufacturer_address if p and p.manufacturer_address else '' }}">
+    </div>
+  </div>
+
+  <div class="ms-field-row">
+    <div>
+      <div class="ms-label">Manufacturer Pincode <span class="req">*</span></div>
+      <input class="ms-input" name="manufacturer_pincode" id="mfr_pin" maxlength="6"
+        placeholder="Enter Manufacturer Pincode"
+        value="{{ p.manufacturer_pincode if p and p.manufacturer_pincode else '' }}">
+    </div>
+    <div>
+      <div class="ms-label">Packer Name <span class="req">*</span>
+        <span class="tip" title="Name of the packer (can be same as manufacturer)">ℹ</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <input class="ms-input" name="packer_name" id="pkr_name"
+          placeholder="Enter Packer Name"
+          value="{{ p.packer_name if p and p.packer_name else '' }}">
+        <label style="display:flex;align-items:center;gap:6px;font-size:0.78rem;color:rgba(255,255,255,0.5);cursor:pointer">
+          <input type="checkbox" id="sameAsMfr" onchange="copySameAsMfr(this)">
+          Same as Manufacturer Details
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="ms-field-row">
+    <div>
+      <div class="ms-label">Packer Address <span class="req">*</span></div>
+      <input class="ms-input" name="packer_address" id="pkr_addr"
+        placeholder="Enter Packer Address"
+        value="{{ p.packer_address if p and p.packer_address else '' }}">
+    </div>
+    <div>
+      <div class="ms-label">Packer Pincode <span class="req">*</span></div>
+      <input class="ms-input" name="packer_pincode" id="pkr_pin" maxlength="6"
+        placeholder="Enter Packer Pincode"
+        value="{{ p.packer_pincode if p and p.packer_pincode else '' }}">
+    </div>
+  </div>
+
+  <div class="ms-field-row">
+    <div>
+      <div class="ms-label">Importer Name <span class="req">*</span></div>
+      <input class="ms-input" name="importer_name"
+        placeholder="Enter Importer Name"
+        value="{{ p.importer_name if p and p.importer_name else '' }}">
+    </div>
+    <div>
+      <div class="ms-label">Importer Address <span class="req">*</span></div>
+      <input class="ms-input" name="importer_address"
+        placeholder="Enter Importer Address"
+        value="{{ p.importer_address if p and p.importer_address else '' }}">
+    </div>
+  </div>
+
+  <div class="ms-field-row" style="grid-template-columns:1fr 1fr">
+    <div>
+      <div class="ms-label">Importer Pincode <span class="req">*</span></div>
+      <input class="ms-input" name="importer_pincode" maxlength="6"
+        placeholder="Enter Importer Pincode"
+        value="{{ p.importer_pincode if p and p.importer_pincode else '' }}">
+    </div>
+  </div>
+
+  <!-- ── SECTION: Other Attributes ── -->
+  <div class="ms-section-title">Other Attributes</div>
+
+  <div class="ms-field-row">
+    <div>
+      <div class="ms-label">Brand</div>
+      <input class="ms-input" name="brand" id="f_brand" placeholder="Enter Brand (optional)"
+        value="{{ p.brand if p and p.brand else '' }}">
+    </div>
+    <div>
+      <div class="ms-label">No. of Compartments</div>
+      <input class="ms-input" name="compartments" placeholder="e.g. 1, 2, 3"
+        value="{{ p.compartments if p and p.compartments else '' }}">
+    </div>
+  </div>
+
+  <div class="ms-field-row">
+    <div>
+      <div class="ms-label">Pattern</div>
+      <select class="ms-select" name="pattern" id="f_pattern">
+        <option value="">Select Pattern</option>
+        {% set ALL_PATTERNS = ["Solid","Printed","Embroidered","Striped","Checked","Floral","Abstract","Geometric","Animal Print","Polka Dot","Tie-Dye","Block Print","Digital Print","Woven","Zari Work","Sequin","Lace","Applique","Matte","Glossy","Transparent","Textured","Carbon Fibre Look","Camouflage","Embossed","Marble Look","Hammered","Polished","Quilted","Croc Print","Patchwork","Studded","Shimmer","Glitter","Satin","Dewy","Natural","Stone Studded","Enamel","Filigree","Meenakari","Kundan","Pearl Work","Temple Design","Oxidised","Plain"] %}
+        {% for pat in ALL_PATTERNS %}
+        <option value="{{ pat }}" {% if p and p.pattern == pat %}selected{% endif %}>{{ pat }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <div class="ms-label">Description
+        <span class="tip" title="Attractive product description for buyers">ℹ</span>
+      </div>
+      <textarea class="ms-input" name="description" id="f_description" maxlength="1400"
+        placeholder="Enter Description" rows="4">{{ p.description if p else '' }}</textarea>
+      <div class="ms-char-count"><span id="descCount">0</span>/1400</div>
+    </div>
+  </div>
+
+  <!-- ── SECTION: Images ── -->
+  <div class="ms-section-title">Product Images</div>
+
+  <div class="ms-field-row">
+    <div>
+      <div class="ms-label">Main / Front Image <span class="req">*</span></div>
+      <div class="img-upload-box" onclick="document.getElementById('mainImgInp').click()">
+        <div id="mainImgText">
+          <div style="font-size:1.5rem">📸</div>
+          <div style="font-size:0.8rem;color:rgba(255,255,255,0.4);margin-top:4px">Click to upload front image</div>
+        </div>
+        <div class="img-preview" id="mainImgPrev"></div>
+      </div>
+      <input type="file" id="mainImgInp" name="image" accept="image/*" style="display:none" onchange="previewImg(this,'mainImgPrev','mainImgText')">
+      {% if p and p.image_url %}
+        <div class="mt-2"><img src="{{ p.image_url }}" style="height:70px;border-radius:8px"></div>
+      {% endif %}
+    </div>
+    <div>
+      <div class="ms-label">Extra Images <span style="font-size:0.72rem;color:rgba(255,255,255,0.3)">(front view, carrying view, detail)</span></div>
+      <div class="img-upload-box" onclick="document.getElementById('extraImgInp').click()">
+        <div id="extraImgText">
+          <div style="font-size:1.5rem">🖼️</div>
+          <div style="font-size:0.8rem;color:rgba(255,255,255,0.4);margin-top:4px">Click to upload extra images</div>
+        </div>
+        <div class="img-preview" id="extraImgPrev"></div>
+      </div>
+      <input type="file" id="extraImgInp" name="images" multiple accept="image/*" style="display:none" onchange="previewImg(this,'extraImgPrev','extraImgText')">
+    </div>
+  </div>
+
+  <!-- T&C text -->
+  <div style="font-size:0.72rem;color:rgba(255,255,255,0.3);line-height:1.6;margin:20px 0;padding:12px;background:rgba(255,255,255,0.02);border-radius:8px">
+    By listing your products on this platform, you agree to comply with the applicable T&C of the platform, as updated from time to time. You confirm that all product information, including labels, claims, and disclosures etc., complies with the Legal Metrology Act, 2009 read with applicable Quality Control Orders, and all other applicable laws, rules and regulations.
+  </div>
+
+  <!-- Bottom bar -->
+  <div class="ms-bottom-bar">
+    <a href="/seller/products" class="btn btn-outline-light">Discard Catalog</a>
+    <div style="display:flex;gap:10px">
+      <button type="button" class="btn btn-outline-light" onclick="document.getElementById('stepDetails').style.display='none';document.getElementById('stepCat').style.display='block';" {% if p %}style="display:none"{% endif %}>
+        ← Save and Go Back
+      </button>
+      <button type="submit" class="btn btn-primary" style="background:#7c4dff;border:none;padding:10px 28px;font-weight:700">
+        Submit Catalog
+      </button>
+    </div>
+  </div>
+
+  </form>
+</div>
+
+<script>
+// ── Category data ────────────────────────────────────────────────
+const CAT_DATA = {
+  "Fashion": {
+    "Women": ["Kurta & Suits", "Sarees", "Lehenga", "Tops", "T-Shirts", "Dresses", "Jeans", "Palazzos", "Skirts", "Kurtis"],
+    "Men": ["T-Shirts", "Shirts", "Jeans", "Trousers", "Kurta", "Jackets", "Shorts", "Ethnic Wear"],
+    "Kids": ["Boys Clothing", "Girls Clothing", "Infants", "School Uniforms"],
+    "Ethnic Wear": ["Sarees", "Lehenga Choli", "Salwar Suits", "Kurta Sets", "Dupatta"],
+    "Innerwear & Sleepwear": ["Bra", "Panties", "Boxers", "Night Suits", "Vests"]
+  },
+  "Electronics": {
+    "Mobile & Accessories": ["Mobile Phones", "Cases & Covers", "Screen Guards", "Chargers", "Earphones", "Power Banks"],
+    "Computers": ["Laptops", "Desktops", "Keyboards", "Mouse", "USB Hubs", "Webcams"],
+    "Smart Devices": ["Smartwatches", "Fitness Bands", "Smart Speakers", "TWS Earbuds"],
+    "Home Electronics": ["Fans", "Heaters", "Irons", "Mixers", "Juicers"]
+  },
+  "Home & Kitchen": {
+    "Kitchen": ["Cookware", "Bakeware", "Knives", "Storage Containers", "Water Bottles", "Lunch Boxes"],
+    "Furniture": ["Chairs", "Tables", "Shelves", "Beds", "Wardrobes"],
+    "Decor": ["Wall Art", "Photo Frames", "Vases", "Candles", "Clocks"],
+    "Bedding": ["Bedsheets", "Blankets", "Pillows", "Curtains", "Mattresses"]
+  },
+  "Bags & Luggage": {
+    "Women Bags": ["Backpacks", "Clutches", "Handbags", "Cross Body Bags & Sling Bags", "Wallets", "Waist Bags"],
+    "Men Bags": ["Backpacks", "Wallets", "Laptop Bags", "Messenger Bags"],
+    "Travel Bags, Luggage and Accessories": ["Trolley Bags", "Duffel Bags", "Travel Accessories", "Passport Holders"],
+    "Unisex": ["Backpacks", "Tote Bags", "Gym Bags"]
+  },
+  "Beauty & Personal Care": {
+    "Skincare": ["Face Wash", "Moisturizer", "Sunscreen", "Serum", "Face Packs", "Toner"],
+    "Haircare": ["Shampoo", "Conditioner", "Hair Oil", "Hair Color", "Hair Accessories"],
+    "Makeup": ["Lipstick", "Foundation", "Kajal", "Eyeliner", "Mascara", "Blush"],
+    "Personal Hygiene": ["Soaps", "Deodorants", "Sanitizers", "Perfumes"]
+  },
+  "Jewellery": {
+    "Women Jewellery": ["Necklaces", "Earrings", "Bangles", "Rings", "Anklets", "Maang Tikka"],
+    "Men Jewellery": ["Chains", "Bracelets", "Rings", "Cufflinks"],
+    "Artificial Jewellery": ["Necklace Sets", "Earrings", "Bangles & Bracelet"],
+    "Gold & Diamond": ["Gold Rings", "Diamond Earrings", "Gold Chains"]
+  },
+  "Kids": {
+    "Toys": ["Action Figures", "Dolls", "Board Games", "Puzzles", "Remote Control"],
+    "Baby Care": ["Diapers", "Baby Food", "Baby Clothing", "Prams"],
+    "School Supplies": ["Bags", "Stationery", "Lunch Boxes", "Water Bottles"]
+  },
+  "Sports & Fitness": {
+    "Exercise & Fitness": ["Yoga Mats", "Dumbbells", "Resistance Bands", "Skipping Ropes"],
+    "Cricket": ["Bats", "Balls", "Gloves", "Helmets", "Cricket Kits"],
+    "Outdoor Sports": ["Football", "Badminton", "Tennis", "Swimming"],
+    "Sports Clothing": ["Track Pants", "Sports T-Shirts", "Shorts", "Sports Shoes"]
+  },
+  "Health & Wellness": {
+    "Vitamins & Supplements": ["Protein Powder", "Multivitamins", "Fish Oil", "Probiotics"],
+    "Medical Devices": ["BP Monitor", "Glucometer", "Thermometer", "Pulse Oximeter"],
+    "Ayurvedic": ["Herbal Products", "Oils", "Powders", "Capsules"]
+  },
+  "Grocery": {
+    "Staples": ["Rice", "Flour", "Pulses", "Oil", "Sugar", "Salt"],
+    "Snacks": ["Biscuits", "Chips", "Namkeen", "Chocolates", "Dry Fruits"],
+    "Beverages": ["Tea", "Coffee", "Juices", "Energy Drinks", "Water"]
+  },
+  "Books & Stationery": {
+    "Books": ["Fiction", "Non-Fiction", "Educational", "Children Books", "Comics"],
+    "Stationery": ["Pens", "Notebooks", "Diaries", "Art Supplies", "Calculators"]
+  },
+  "Toys & Games": {
+    "Toys": ["Action Figures", "Dolls", "Building Blocks", "RC Toys", "Educational Toys"],
+    "Board Games": ["Chess", "Ludo", "Carrom", "Card Games", "Puzzles"]
+  },
+  "Automotive": {
+    "Car Accessories": ["Car Covers", "Seat Covers", "Dash Cams", "Car Chargers"],
+    "Bike Accessories": ["Helmets", "Bike Covers", "Bike Locks", "Indicators"]
+  },
+  "Pet Supplies": {
+    "Dogs": ["Dog Food", "Dog Toys", "Dog Collars", "Dog Beds", "Grooming"],
+    "Cats": ["Cat Food", "Cat Toys", "Cat Litter", "Cat Beds"],
+    "Fish & Aquarium": ["Fish Food", "Aquarium Tanks", "Filters", "Decorations"]
+  }
+};
+
+let selL1 = "", selL2 = "", selL3 = "";
+
+function selectL1(el) {
+  selL1 = el.dataset.l1;
+  selL2 = ""; selL3 = "";
+  document.querySelectorAll("#col1 .cat-item").forEach(e => e.classList.remove("active"));
+  el.classList.add("active");
+
+  const data = CAT_DATA[selL1] || {};
+  const col2 = document.getElementById("col2");
+  col2.innerHTML = "";
+  Object.keys(data).forEach(sub => {
+    const d = document.createElement("div");
+    d.className = "cat-item"; d.dataset.l2 = sub;
+    d.innerHTML = `<span>${sub}</span><span style="color:rgba(255,255,255,0.3)">›</span>`;
+    d.onclick = function(){ selectL2(this); };
+    col2.appendChild(d);
+  });
+
+  document.getElementById("col3").innerHTML = `<div style="padding:40px 16px;color:rgba(255,255,255,0.25);font-size:0.82rem;text-align:center">← Sub-category select karo</div>`;
+  document.getElementById("previewEmpty").style.display = "block";
+  document.getElementById("previewContent").style.display = "none";
+  document.getElementById("nextBtn").disabled = true;
+}
+
+function selectL2(el) {
+  selL2 = el.dataset.l2;
+  selL3 = "";
+  document.querySelectorAll("#col2 .cat-item").forEach(e => e.classList.remove("active"));
+  el.classList.add("active");
+
+  const subs = (CAT_DATA[selL1] || {})[selL2] || [];
+  const col3 = document.getElementById("col3");
+  col3.innerHTML = "";
+  subs.forEach(sub => {
+    const d = document.createElement("div");
+    d.className = "cat-item"; d.dataset.l3 = sub;
+    d.innerHTML = `<span>${sub}</span>`;
+    d.onclick = function(){ selectL3(this); };
+    col3.appendChild(d);
+  });
+}
+
+function selectL3(el) {
+  selL3 = el.dataset.l3;
+  document.querySelectorAll("#col3 .cat-item").forEach(e => e.classList.remove("active"));
+  el.classList.add("active");
+
+  document.getElementById("previewEmpty").style.display = "none";
+  document.getElementById("previewContent").style.display = "block";
+  document.getElementById("breadcrumbTxt").textContent = selL1 + " / " + selL2 + " / " + selL3;
+  document.getElementById("proceedBtn").style.display = "block";
+  document.getElementById("nextBtn").disabled = false;
+
+  // Set category fields
+  document.getElementById("f_category").value = selL3;
+  document.getElementById("f_catalog_name").value = selL1 + " / " + selL2;
+}
+
+function goToDetails() {
+  if (!selL3 && !document.getElementById("f_category").value) {
+    alert("Pehle ek category select karo!");
+    return;
+  }
+  document.getElementById("stepCat").style.display = "none";
+  document.getElementById("stepDetails").style.display = "block";
+  document.getElementById("tab1").className = "ms-step done";
+  document.getElementById("tab1").querySelector(".ms-step-num").textContent = "✓";
+  document.getElementById("tab2").className = "ms-step active";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function filterCats(q) {
+  const box = document.getElementById("searchResults");
+  q = q.trim();
+
+  if (!q) {
+    box.style.display = "none";
+    // restore col1 visibility
+    document.querySelectorAll("#col1 .cat-item").forEach(el => el.style.display = "");
+    return;
+  }
+
+  const ql = q.toLowerCase();
+  const matches = [];
+
+  // Search through all 3 levels
+  Object.entries(CAT_DATA).forEach(([l1, subs]) => {
+    Object.entries(subs).forEach(([l2, l3arr]) => {
+      l3arr.forEach(l3 => {
+        const score =
+          (l3.toLowerCase().includes(ql) ? 3 : 0) +
+          (l2.toLowerCase().includes(ql) ? 2 : 0) +
+          (l1.toLowerCase().includes(ql) ? 1 : 0);
+        if (score > 0) matches.push({ l1, l2, l3, score });
+      });
+    });
+  });
+
+  matches.sort((a, b) => b.score - a.score);
+
+  if (matches.length === 0) {
+    box.innerHTML = `<div style="padding:16px;color:rgba(255,255,255,0.4);font-size:0.85rem;text-align:center">No categories found for "${q}"</div>`;
+    box.style.display = "block";
+    return;
+  }
+
+  let html = "";
+  let _activeIdx = -1;
+  matches.slice(0, 12).forEach((m, i) => {
+    // Highlight matching text
+    function hl(str) {
+      const idx = str.toLowerCase().indexOf(ql);
+      if (idx === -1) return str;
+      return str.slice(0, idx) + `<mark style="background:rgba(124,77,255,0.4);color:#fff;border-radius:3px;padding:0 2px">${str.slice(idx, idx + ql.length)}</mark>` + str.slice(idx + ql.length);
+    }
+    html += `<div class="search-result-item" data-idx="${i}" data-l1="${m.l1}" data-l2="${m.l2}" data-l3="${m.l3}"
+      onclick="pickSearchResult(this)"
+      style="padding:10px 16px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.05);transition:background 0.1s">
+      <div style="font-size:0.88rem;color:#fff;font-weight:600">${hl(m.l3)}</div>
+      <div style="font-size:0.75rem;color:rgba(255,255,255,0.4);margin-top:2px">${m.l1} › ${hl(m.l2)} › ${hl(m.l3)}</div>
+    </div>`;
+  });
+
+  box.innerHTML = html;
+  box.style.display = "block";
+
+  // Hover highlight
+  box.querySelectorAll(".search-result-item").forEach(el => {
+    el.addEventListener("mouseenter", () => el.style.background = "rgba(124,77,255,0.2)");
+    el.addEventListener("mouseleave", () => el.style.background = "");
+  });
+}
+
+function pickSearchResult(el) {
+  const l1 = el.dataset.l1, l2 = el.dataset.l2, l3 = el.dataset.l3;
+
+  // Close search
+  document.getElementById("searchResults").style.display = "none";
+  document.getElementById("catSearch").value = l3;
+
+  // Simulate selecting in the 3-column picker
+  selL1 = l1; selL2 = l2; selL3 = l3;
+
+  // Highlight L1
+  document.querySelectorAll("#col1 .cat-item").forEach(e => {
+    e.classList.toggle("active", e.dataset.l1 === l1);
+    e.style.display = "";
+  });
+
+  // Populate + highlight L2
+  const col2 = document.getElementById("col2");
+  col2.innerHTML = "";
+  Object.keys(CAT_DATA[l1] || {}).forEach(sub => {
+    const d = document.createElement("div");
+    d.className = "cat-item" + (sub === l2 ? " active" : "");
+    d.dataset.l2 = sub;
+    d.innerHTML = `<span>${sub}</span><span style="color:rgba(255,255,255,0.3)">›</span>`;
+    d.onclick = function(){ selectL2(this); };
+    col2.appendChild(d);
+  });
+
+  // Populate + highlight L3
+  const col3 = document.getElementById("col3");
+  col3.innerHTML = "";
+  (CAT_DATA[l1][l2] || []).forEach(sub => {
+    const d = document.createElement("div");
+    d.className = "cat-item" + (sub === l3 ? " active" : "");
+    d.dataset.l3 = sub;
+    d.innerHTML = `<span>${sub}</span>`;
+    d.onclick = function(){ selectL3(this); };
+    col3.appendChild(d);
+  });
+
+  // Show preview
+  document.getElementById("previewEmpty").style.display = "none";
+  document.getElementById("previewContent").style.display = "block";
+  document.getElementById("breadcrumbTxt").textContent = l1 + " / " + l2 + " / " + l3;
+  document.getElementById("proceedBtn").style.display = "block";
+  document.getElementById("nextBtn").disabled = false;
+
+  document.getElementById("f_category").value = l3;
+  document.getElementById("f_catalog_name").value = l1 + " / " + l2;
+}
+
+// Keyboard nav in search results
+function searchKeyNav(e) {
+  const items = document.querySelectorAll(".search-result-item");
+  if (!items.length) return;
+  let cur = -1;
+  items.forEach((el, i) => { if (el.style.background.includes("124,77,255")) cur = i; });
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    const next = Math.min(cur + 1, items.length - 1);
+    items.forEach(el => el.style.background = "");
+    items[next].style.background = "rgba(124,77,255,0.2)";
+    items[next].scrollIntoView({ block: "nearest" });
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    const prev = Math.max(cur - 1, 0);
+    items.forEach(el => el.style.background = "");
+    items[prev].style.background = "rgba(124,77,255,0.2)";
+    items[prev].scrollIntoView({ block: "nearest" });
+  } else if (e.key === "Enter" && cur >= 0) {
+    e.preventDefault();
+    pickSearchResult(items[cur]);
+  } else if (e.key === "Escape") {
+    document.getElementById("searchResults").style.display = "none";
+  }
+}
+
+// Close search on outside click
+document.addEventListener("click", function(e) {
+  if (!e.target.closest("#catSearch") && !e.target.closest("#searchResults")) {
+    document.getElementById("searchResults").style.display = "none";
+  }
+});
+
+function previewCatImg(input) {
+  if (!input.files[0]) return;
+  const box = document.getElementById("catImgPreview");
+  const img = document.createElement("img");
+  img.style.cssText = "width:100%;border-radius:8px;max-height:160px;object-fit:contain";
+  img.src = URL.createObjectURL(input.files[0]);
+  box.innerHTML = "";
+  box.appendChild(img);
+}
+
+function previewImg(input, previewId, textId) {
+  const prev = document.getElementById(previewId);
+  prev.innerHTML = "";
+  const txt = document.getElementById(textId);
+  if (txt) txt.style.display = "none";
+  Array.from(input.files).forEach(file => {
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(file);
+    prev.appendChild(img);
+  });
+}
+
+// Description counter
+const descTA = document.getElementById("f_description");
+const descCnt = document.getElementById("descCount");
+descTA.addEventListener("input", () => { descCnt.textContent = descTA.value.length; });
+descCnt.textContent = descTA.value.length;
+
+// Same as manufacturer
+function copySameAsMfr(cb) {
+  if (cb.checked) {
+    document.getElementById("pkr_name").value = document.getElementById("mfr_name").value;
+    document.getElementById("pkr_addr").value = document.getElementById("mfr_addr").value;
+    document.getElementById("pkr_pin").value  = document.getElementById("mfr_pin").value;
+  }
+}
+
+// ── Category-wise HSN codes ──────────────────────────────────────
+const CAT_HSN = {
+  // Fashion
+  "Kurta & Suits":"6211","Sarees":"5208","Lehenga":"6211","Tops":"6211","T-Shirts":"6109",
+  "Dresses":"6104","Jeans":"6203","Palazzos":"6211","Skirts":"6104","Kurtis":"6211",
+  "Shirts":"6205","Trousers":"6203","Kurta":"6211","Jackets":"6201","Shorts":"6203",
+  "Ethnic Wear":"6211","Salwar Suits":"6211","Kurta Sets":"6211","Dupatta":"6214",
+  "Lehenga Choli":"6211","Boys Clothing":"6209","Girls Clothing":"6209","Infants":"6209",
+  "School Uniforms":"6211","Bra":"6212","Panties":"6212","Boxers":"6207",
+  "Night Suits":"6107","Vests":"6109","Innerwear":"6212",
+  // Electronics
+  "Mobile Phones":"8517","Cases & Covers":"3926","Screen Guards":"3926",
+  "Chargers":"8504","Earphones":"8518","Power Banks":"8507","Laptops":"8471",
+  "Desktops":"8471","Keyboards":"8471","Mouse":"8471","USB Hubs":"8536",
+  "Webcams":"8525","Smartwatches":"9102","Fitness Bands":"9102",
+  "Smart Speakers":"8518","TWS Earbuds":"8518","Fans":"8414","Heaters":"8516",
+  "Irons":"8516","Mixers":"8509","Juicers":"8509",
+  // Home & Kitchen
+  "Cookware":"7323","Bakeware":"7323","Knives":"8211","Storage Containers":"3923",
+  "Water Bottles":"3924","Lunch Boxes":"3924","Chairs":"9401","Tables":"9403",
+  "Shelves":"9403","Beds":"9403","Wardrobes":"9403","Wall Art":"4911",
+  "Photo Frames":"3926","Vases":"6913","Candles":"3406","Clocks":"9103",
+  "Bedsheets":"6302","Blankets":"6301","Pillows":"9404","Curtains":"6303",
+  "Mattresses":"9404",
+  // Bags
+  "Backpacks":"4202","Clutches":"4202","Handbags":"4202",
+  "Cross Body Bags & Sling Bags":"4202","Wallets":"4202","Waist Bags":"4202",
+  "Laptop Bags":"4202","Messenger Bags":"4202","Trolley Bags":"4202",
+  "Duffel Bags":"4202","Passport Holders":"4202","Tote Bags":"4202","Gym Bags":"4202",
+  // Beauty
+  "Face Wash":"3305","Moisturizer":"3304","Sunscreen":"3304","Serum":"3304",
+  "Face Packs":"3304","Toner":"3304","Shampoo":"3305","Conditioner":"3305",
+  "Hair Oil":"3305","Hair Color":"3305","Hair Accessories":"9615",
+  "Lipstick":"3304","Foundation":"3304","Kajal":"3304","Eyeliner":"3304",
+  "Mascara":"3304","Blush":"3304","Soaps":"3401","Deodorants":"3307",
+  "Sanitizers":"3808","Perfumes":"3303",
+  // Jewellery
+  "Necklaces":"7117","Earrings":"7117","Bangles":"7117","Rings":"7117",
+  "Anklets":"7117","Maang Tikka":"7117","Chains":"7117","Bracelets":"7117",
+  "Cufflinks":"7117","Necklace Sets":"7117","Bangles & Bracelet":"7117",
+  "Gold Rings":"7113","Diamond Earrings":"7113","Gold Chains":"7113",
+  // Footwear
+  "Sneakers":"6402","Shoes":"6403","Sandals":"6402","Slippers":"6402",
+  "Heels":"6402","Boots":"6403","Sports Shoes":"6402","Formal Shoes":"6403",
+  // Books
+  "Fiction":"4901","Non-Fiction":"4901","Educational":"4901",
+  "Children Books":"4901","Comics":"4901","Pens":"9608","Notebooks":"4820",
+  "Diaries":"4820","Art Supplies":"9609","Calculators":"8470",
+  // Toys
+  "Action Figures":"9503","Dolls":"9503","Board Games":"9504",
+  "Puzzles":"9503","Remote Control":"9503","Building Blocks":"9503",
+  "Educational Toys":"9503","Chess":"9504","Ludo":"9504","Carrom":"9504",
+  // Sports
+  "Yoga Mats":"9506","Dumbbells":"9506","Resistance Bands":"9506",
+  "Skipping Ropes":"9506","Bats":"9506","Balls":"9506","Gloves":"9506",
+  "Helmets":"6506","Cricket Kits":"9506","Football":"9506","Badminton":"9506",
+  "Track Pants":"6211","Sports T-Shirts":"6109","Sports Shoes":"6402",
+};
+
+// ── Category-wise Generic Names ──────────────────────────────────
+const CAT_GENERIC = {
+  "Fashion": ["Kurti","Kurta","Saree","Lehenga","Top","T-Shirt","Shirt","Jeans","Trouser","Dress","Skirt","Palazzo","Jacket","Blazer","Sherwani","Dupatta","Salwar Suit","Night Suit","Bra","Panty","Vest","Boxer","Shorts"],
+  "Electronics": ["Mobile Phone","Laptop","Charger","Earphones","Headphones","Power Bank","Keyboard","Mouse","Smartwatch","Smart Speaker","Fan","Iron","Mixer","Juicer","Screen Guard","Mobile Cover"],
+  "Home & Kitchen": ["Cookware Set","Frying Pan","Pressure Cooker","Water Bottle","Lunch Box","Storage Container","Knife","Chopping Board","Bedsheet","Blanket","Pillow","Curtain","Mattress","Chair","Table","Shelf","Clock","Photo Frame","Candle","Vase"],
+  "Bags & Luggage": ["Backpack","Handbag","Wallet","Clutch","Sling Bag","Tote Bag","Laptop Bag","Trolley Bag","Duffel Bag","Waist Bag","Passport Holder","Gym Bag"],
+  "Beauty & Personal Care": ["Face Wash","Moisturizer","Sunscreen","Serum","Shampoo","Conditioner","Hair Oil","Lipstick","Foundation","Kajal","Perfume","Soap","Deodorant","Face Pack","Toner","Blush","Mascara"],
+  "Jewellery": ["Necklace","Earrings","Bangles","Ring","Bracelet","Anklet","Maang Tikka","Necklace Set","Chain","Pendant","Toe Ring","Nose Ring"],
+  "Kids": ["Baby Dress","Kids T-Shirt","Baby Shoes","Toy","Doll","Board Game","Puzzle","School Bag","Water Bottle","Lunch Box","Baby Diaper"],
+  "Sports & Fitness": ["Yoga Mat","Dumbbell","Resistance Band","Skipping Rope","Cricket Bat","Football","Badminton Racket","Sports Shoes","Track Pant","Sports T-Shirt","Helmet","Gym Gloves"],
+  "Books & Stationery": ["Novel","Textbook","Notebook","Diary","Pen","Pencil","Calculator","Art Set","Sketch Pen","Highlighter","Ruler"],
+  "Toys & Games": ["Action Figure","Doll","Remote Control Car","Building Blocks","Board Game","Puzzle","Educational Toy","Chess Set","Carrom Board"],
+  "Grocery": ["Rice","Flour","Dal","Oil","Sugar","Tea","Coffee","Biscuit","Chips","Chocolate","Dry Fruit","Spice"],
+  "Health & Wellness": ["Protein Powder","Multivitamin","Fish Oil","Probiotic","BP Monitor","Thermometer","Glucometer","Pulse Oximeter"],
+  "Automotive": ["Car Cover","Seat Cover","Dash Cam","Car Charger","Helmet","Bike Cover","Bike Lock"],
+  "Pet Supplies": ["Dog Food","Cat Food","Pet Toy","Dog Collar","Pet Bed","Aquarium","Fish Food"],
+};
+
+// ── Category-wise field data ─────────────────────────────────────
+const CAT_FIELDS = {
+  "Fashion": {
+    material:   ["100% Cotton","Cotton Blend","Pure Silk","Art Silk","Georgette","Chiffon","Crepe","Rayon","Polyester","Linen","Denim","Velvet","Net","Lycra","Wool","Khadi","Chanderi","Banarasi Silk","Pure Cotton","Viscose","Jersey","Terry Cotton","Nylon","Spandex"],
+    fold_type:  ["Foldable","Non-Foldable","Rollable","Flat Pack"],
+    type:       ["Casual","Formal","Ethnic","Party Wear","Festive","Bridal","Sports","Loungewear","Workwear","Fusion","Traditional","Western","Semi-Formal"],
+    occasion:   ["Casual","Daily Wear","Festive","Party","Wedding","Office","College","Workout","Beach","Bridal","Puja","Anniversary","Gifting"],
+    pattern:    ["Solid","Printed","Embroidered","Striped","Checked","Floral","Abstract","Geometric","Animal Print","Polka Dot","Tie-Dye","Block Print","Digital Print","Woven","Zari Work","Sequin","Lace","Applique"],
+    sizes:      ["XS","S","M","L","XL","XXL","3XL","4XL","Free Size","28","30","32","34","36","38","40","42","44"],
+  },
+  "Electronics": {
+    material:   ["Plastic","ABS Plastic","Metal","Aluminium","Stainless Steel","Rubber","Silicone","Glass","Carbon Fibre","Polycarbonate","TPU"],
+    fold_type:  ["Non-Foldable","Foldable","Retractable","Detachable"],
+    type:       ["Wired","Wireless","Bluetooth","USB-C","Type-A","Fast Charging","Noise Cancelling","True Wireless","Smart","Portable","Desktop","Gaming"],
+    occasion:   ["Daily Use","Office","Gaming","Travel","Outdoor","Work From Home","Study","Professional"],
+    pattern:    ["Solid","Matte","Glossy","Transparent","Textured","Carbon Fibre Look","Camouflage","Printed"],
+    sizes:      ["Mini","Compact","Standard","Large","One Size","6 inch","6.5 inch","7 inch"],
+  },
+  "Home & Kitchen": {
+    material:   ["Stainless Steel","Aluminium","Cast Iron","Non-Stick Coated","Glass","Ceramic","Plastic","Silicone","Bamboo","Wood","Copper","Iron","Melamine","Borosilicate Glass","Hard Anodised","Granite Coated"],
+    fold_type:  ["Non-Foldable","Foldable","Stackable","Collapsible","Nested"],
+    type:       ["Cooking","Baking","Storage","Serving","Decorative","Multipurpose","Travel","Insulated","Microwave Safe","Dishwasher Safe","Airtight","Leak Proof"],
+    occasion:   ["Daily Use","Kitchen","Dining","Outdoor","Picnic","Office","Gifting","Festival","Travel"],
+    pattern:    ["Solid","Printed","Embossed","Textured","Floral","Geometric","Traditional","Marble Look","Hammered","Polished"],
+    sizes:      ["500 ml","750 ml","1 L","1.5 L","2 L","3 L","5 L","Small","Medium","Large","Set of 3","Set of 6"],
+  },
+  "Bags & Luggage": {
+    material:   ["PU Leather","Genuine Leather","Canvas","Polyester","Nylon","Jute","Rexine","Faux Leather","Fabric","Oxford Cloth","Mesh","Velvet","Suede"],
+    fold_type:  ["Non-Foldable","Foldable","Rollable","Packable"],
+    type:       ["Casual","Formal","Travel","College","Office","Sports","School","Party","Trekking","Fashion","Ethnic"],
+    occasion:   ["Daily Use","Office","College","Travel","Shopping","Party","Wedding","Gym","Trekking","Casual","Gifting"],
+    pattern:    ["Solid","Printed","Embroidered","Quilted","Textured","Croc Print","Woven","Patchwork","Studded","Floral","Striped","Camouflage","Plain"],
+    sizes:      ["Small","Medium","Large","Extra Large","Mini","20L","30L","40L","50L","55 cm","65 cm","75 cm"],
+  },
+  "Beauty & Personal Care": {
+    material:   ["Paraben-Free","Sulphate-Free","Natural","Organic","Ayurvedic","Chemical-Free","Vegan","Cruelty-Free","Herbal","Alcohol-Free","Fragrance-Free","Dermatologist Tested"],
+    fold_type:  ["Non-Foldable","Compact","Travel Size","Refillable"],
+    type:       ["Moisturizing","Oil Control","Anti-Ageing","Brightening","Hydrating","Nourishing","Volumizing","Strengthening","Clarifying","Soothing","Detoxifying","SPF Protection"],
+    occasion:   ["Daily Use","Night Care","Morning Routine","Pre-Makeup","Post-Workout","Travel","Gifting","Special Occasion"],
+    pattern:    ["Solid","Matte","Glossy","Shimmer","Glitter","Satin","Dewy","Natural"],
+    sizes:      ["5 ml","10 ml","15 ml","30 ml","50 ml","100 ml","150 ml","200 ml","250 ml","500 ml","Travel Size","Full Size"],
+  },
+  "Jewellery": {
+    material:   ["Gold Plated","Silver Plated","Rose Gold Plated","Oxidised Silver","Brass","Copper","German Silver","Stainless Steel","Sterling Silver","Alloy","Kundan","Meenakari","Pearl","Stone Studded","Rhodium Plated"],
+    fold_type:  ["Non-Foldable","Adjustable","Fixed"],
+    type:       ["Traditional","Contemporary","Fusion","Bridal","Casual","Party Wear","Festive","Minimalist","Statement","Boho","Antique"],
+    occasion:   ["Wedding","Festival","Party","Daily Wear","Office","Engagement","Anniversary","Gifting","Casual","Bridal","Puja"],
+    pattern:    ["Plain","Stone Studded","Enamel","Floral","Geometric","Filigree","Meenakari","Kundan","Pearl Work","Temple Design","Oxidised"],
+    sizes:      ["Free Size","Adjustable","2.4","2.6","2.8","6","7","8","9","10","Small","Medium","Large"],
+  },
+  "Kids": {
+    material:   ["100% Cotton","Soft Cotton","Fleece","Polyester","ABS Plastic","Wood","Fabric","Plush","Foam","Rubber","Non-Toxic Plastic","BPA Free"],
+    fold_type:  ["Foldable","Non-Foldable","Stackable","Assembly Required"],
+    type:       ["Casual","Formal","Party Wear","School","Ethnic","Sportswear","Innerwear","Nightwear","Educational","Interactive","Outdoor","Indoor"],
+    occasion:   ["School","Daily Wear","Party","Festive","Outdoor Play","Birthday","Gifting","Casual","Sports"],
+    pattern:    ["Printed","Solid","Cartoon","Striped","Checked","Floral","Superhero","Animal Print","Geometric","Tie-Dye"],
+    sizes:      ["0-6 Months","6-12 Months","1-2 Years","2-3 Years","3-4 Years","4-5 Years","5-6 Years","6-7 Years","7-8 Years","8-9 Years","9-10 Years","10-11 Years","11-12 Years","XS","S","M","L"],
+  },
+  "Sports & Fitness": {
+    material:   ["NBR Foam","TPE","Natural Rubber","Neoprene","Polyester","Nylon","Lycra","Spandex","Iron","Steel","Rubber","EVA Foam","Mesh","Dri-Fit","Quick Dry"],
+    fold_type:  ["Rollable","Foldable","Non-Foldable","Retractable","Collapsible"],
+    type:       ["Gym","Yoga","Running","Cricket","Football","Badminton","Swimming","Cycling","Trekking","Home Workout","Outdoor","Cardio","Strength Training"],
+    occasion:   ["Gym","Outdoor","Sports","Daily Workout","Competition","Training","Casual","Travel"],
+    pattern:    ["Solid","Printed","Camouflage","Striped","Neon","Reflective","Textured","Plain"],
+    sizes:      ["XS","S","M","L","XL","XXL","3XL","5 mm","6 mm","8 mm","10 mm","Free Size","One Size","5","6","7","8","9","10","11"],
+  },
+  "Books & Stationery": {
+    material:   ["Paper","Hardcover","Paperback","Spiral Bound","Leather Bound","Recycled Paper","Card Stock","Plastic"],
+    fold_type:  ["Non-Foldable","Spiral","Hardcover","Paperback"],
+    type:       ["Ruled","Plain","Grid","Dotted","Daily Planner","Weekly Planner","Art Book","Sketch Book","Composition","Index"],
+    occasion:   ["School","College","Office","Daily Use","Gifting","Study","Professional","Art & Craft"],
+    pattern:    ["Plain","Printed","Floral","Geometric","Abstract","Inspirational Quote","Solid","Character"],
+    sizes:      ["A4","A5","A6","B5","Legal","Letter","Small","Medium","Large","Pocket Size"],
+  },
+  "Grocery": {
+    material:   ["Organic","Natural","Pure","Whole Grain","Refined","Unrefined","Cold Pressed","Extra Virgin","Raw","Processed"],
+    fold_type:  ["Non-Foldable","Resealable","Vacuum Packed","Airtight"],
+    type:       ["Organic","Regular","Premium","Economy","Diet","Sugar Free","Low Fat","Fortified","Enriched"],
+    occasion:   ["Daily Use","Festival","Special Occasion","Gifting","Cooking","Snacking","Breakfast","Health"],
+    pattern:    ["Plain","Mixed","Assorted"],
+    sizes:      ["100g","200g","250g","500g","1 Kg","2 Kg","5 Kg","250 ml","500 ml","1 L","2 L"],
+  },
+  "Health & Wellness": {
+    material:   ["Plastic","ABS","Medical Grade","BPA Free","Stainless Steel","Silicone","Natural Ingredients","Herbal","Organic","Ayurvedic"],
+    fold_type:  ["Non-Foldable","Portable","Compact","Travel Size"],
+    type:       ["Digital","Manual","Automatic","Rechargeable","Battery Operated","Herbal","Ayurvedic","Allopathic","Homeopathic"],
+    occasion:   ["Daily Use","Emergency","Travel","Office","Home","Gifting","Senior Care"],
+    pattern:    ["Plain","Printed","Solid"],
+    sizes:      ["Standard","Compact","Large","Travel Size","30 Tablets","60 Tablets","90 Tablets","1 Kg","500g","200g"],
+  },
+  "Automotive": {
+    material:   ["Polyester","PVC","Leather","Neoprene","Carbon Fibre","ABS Plastic","Aluminium","Rubber","Mesh","Canvas"],
+    fold_type:  ["Non-Foldable","Foldable","Retractable","Roll-up"],
+    type:       ["Universal","Car Specific","Bike Specific","Waterproof","All Weather","Heavy Duty","Premium","Economy"],
+    occasion:   ["Daily Use","Travel","Outdoor","All Weather","Protection","Gifting"],
+    pattern:    ["Solid","Printed","Carbon Fibre Look","Camouflage","Woodgrain","Textured"],
+    sizes:      ["Small (Hatchback)","Medium (Sedan)","Large (SUV)","Universal","One Size"],
+  },
+  "Pet Supplies": {
+    material:   ["Natural Ingredients","Grain Free","Chicken Based","Fish Based","Vegetarian","Organic","Cotton","Polyester","Plush","Rubber","Nylon","Leather"],
+    fold_type:  ["Non-Foldable","Foldable","Collapsible"],
+    type:       ["Dry Food","Wet Food","Treats","Grooming","Training","Outdoor","Indoor","Interactive","Chew Toy"],
+    occasion:   ["Daily Use","Outdoor","Training","Play","Grooming","Travel","Gifting"],
+    pattern:    ["Plain","Printed","Solid","Character","Striped"],
+    sizes:      ["Small","Medium","Large","Extra Large","1 Kg","2 Kg","5 Kg","10 Kg","XS","S","M","L","XL"],
+  },
+  "Toys & Games": {
+    material:   ["ABS Plastic","Non-Toxic Plastic","Wood","Fabric","Plush","Foam","Rubber","Metal","BPA Free","Eco-Friendly"],
+    fold_type:  ["Non-Foldable","Foldable","Assembly Required","Stackable"],
+    type:       ["Educational","Action","Creative","Strategy","Outdoor","Indoor","Electronic","Soft","Remote Control","Building","Puzzle"],
+    occasion:   ["Birthday","Festival","Daily Play","Gifting","School","Outdoor","Indoor"],
+    pattern:    ["Solid","Printed","Cartoon","Character","Animal","Vehicle","Abstract"],
+    sizes:      ["Small","Medium","Large","Mini","Standard","3+ Years","5+ Years","8+ Years","12+ Years"],
+  },
+  "Jewellery": {
+    material:   ["Gold Plated","Silver Plated","Rose Gold Plated","Oxidised Silver","Brass","Copper","German Silver","Stainless Steel","Sterling Silver","Alloy","Kundan","Meenakari","Pearl","Stone Studded","Rhodium Plated"],
+    fold_type:  ["Non-Foldable","Adjustable","Fixed"],
+    type:       ["Traditional","Contemporary","Fusion","Bridal","Casual","Party Wear","Festive","Minimalist","Statement","Boho","Antique"],
+    occasion:   ["Wedding","Festival","Party","Daily Wear","Office","Engagement","Anniversary","Gifting","Casual","Bridal","Puja"],
+    pattern:    ["Plain","Stone Studded","Enamel","Floral","Geometric","Filigree","Meenakari","Kundan","Pearl Work","Temple Design","Oxidised"],
+    sizes:      ["Free Size","Adjustable","2.4","2.6","2.8","6","7","8","9","10","Small","Medium","Large"],
+  },
+};
+
+// ── Auto-fill ALL fields when category selected ──────────────────
+function populateSelect(id, options, currentVal) {
+  const sel = document.getElementById(id);
+  if (!sel) return;
+  const prev = currentVal || sel.value || '';
+  sel.innerHTML = '<option value="">Select</option>';
+  options.forEach(opt => {
+    const o = document.createElement('option');
+    o.value = opt; o.textContent = opt;
+    if (opt === prev) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+
+function applyCategory(l1, l3) {
+  const fields = CAT_FIELDS[l1] || CAT_FIELDS["Fashion"];
+
+  // HSN
+  const hsn = CAT_HSN[l3] || "";
+  const hsnEl = document.getElementById("f_hsn");
+  if (hsnEl) {
+    hsnEl.value = hsn;
+    const note = document.getElementById("hsnNote");
+    if (note) note.textContent = hsn ? "✅ HSN: " + hsn + " (auto-filled)" : "⚠️ Manual enter karo";
+  }
+
+  // Populate all dropdowns
+  const curGeneric = document.getElementById("f_generic_name")?.value || '';
+  populateSelect("f_generic_name",  CAT_GENERIC[l1] || [], curGeneric);
+  populateSelect("f_material",      fields.material   || [], document.getElementById("f_material")?.value || '');
+  populateSelect("f_fold_type",     fields.fold_type  || [], document.getElementById("f_fold_type")?.value || '');
+  populateSelect("f_product_type",  fields.type       || [], document.getElementById("f_product_type")?.value || '');
+  populateSelect("f_occasion",      fields.occasion   || [], document.getElementById("f_occasion")?.value || '');
+  populateSelect("f_pattern",       fields.pattern    || [], document.getElementById("f_pattern")?.value || '');
+  populateSelect("f_size_options",  fields.sizes      || [], document.getElementById("f_size_options")?.value || '');
+  populateSelect("f_closure",       ["Zip","Button","Snap","Hook","Drawstring","Velcro","Magnetic","Open","Flap","Buckle"], document.getElementById("f_closure")?.value || '');
+}
+
+// ── Patch selectL3 to also call applyCategory ────────────────────
+const _selectL3_orig = selectL3;
+selectL3 = function(el) {
+  _selectL3_orig(el);
+  applyCategory(selL1, selL3);
+};
+
+// ══════════════════════════════════════════════
+// SIZE CHART BUILDER
+// ══════════════════════════════════════════════
+const SC_TEMPLATES = {
+  clothing: {
+    cols: ['Chest (in)', 'Waist (in)', 'Hip (in)', 'Length (in)'],
+    rows: [
+      ['XS', '34', '28', '36', '27'],
+      ['S',  '36', '30', '38', '27.5'],
+      ['M',  '38', '32', '40', '28'],
+      ['L',  '40', '34', '42', '28.5'],
+      ['XL', '42', '36', '44', '29'],
+      ['XXL','44', '38', '46', '29.5'],
+    ]
+  },
+  footwear: {
+    cols: ['UK Size', 'EU Size', 'US Size', 'Foot Length (cm)'],
+    rows: [
+      ['5',  '38', '6',  '23.5'],
+      ['6',  '39', '7',  '24'],
+      ['7',  '40', '8',  '25'],
+      ['8',  '41', '9',  '26'],
+      ['9',  '42', '10', '27'],
+      ['10', '43', '11', '28'],
+    ]
+  },
+  kids: {
+    cols: ['Age', 'Height (cm)', 'Chest (cm)', 'Waist (cm)'],
+    rows: [
+      ['1-2 Yr',  '86',  '50', '47'],
+      ['2-3 Yr',  '94',  '53', '50'],
+      ['3-4 Yr',  '102', '55', '52'],
+      ['4-5 Yr',  '110', '57', '54'],
+      ['5-6 Yr',  '116', '59', '55'],
+      ['6-7 Yr',  '122', '61', '57'],
+    ]
+  },
+  custom: {
+    cols: ['Measurement 1', 'Measurement 2'],
+    rows: [['S','',''],['M','',''],['L','',''],['XL','','']]
+  }
+};
+
+let scCols = [];
+let scRows = [];
+
+function scSerialize() {
+  const data = { cols: scCols, rows: scRows };
+  document.getElementById('size_chart_data').value = JSON.stringify(data);
+}
+
+function scRender() {
+  // Header
+  const hrow = document.getElementById('scHeaderRow');
+  hrow.innerHTML = '<th style="padding:10px 12px;font-size:0.78rem;color:rgba(255,255,255,0.5);text-align:left;min-width:80px">Size Label</th>';
+  scCols.forEach((col, ci) => {
+    const th = document.createElement('th');
+    th.style.cssText = 'padding:8px 10px;font-size:0.78rem;color:rgba(255,255,255,0.5);white-space:nowrap;text-align:left';
+    th.innerHTML = `<input value="${col}" onchange="scCols[${ci}]=this.value;scSerialize()" style="background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.2);outline:none;color:rgba(255,255,255,0.8);font-size:0.78rem;width:110px;padding:2px 4px">
+      <span class="sc-del-col" onclick="scDelCol(${ci})" title="Remove column">✕</span>`;
+    hrow.appendChild(th);
+  });
+  // extra th for delete row button
+  const thDel = document.createElement('th'); hrow.appendChild(thDel);
+
+  // Body
+  const tbody = document.getElementById('scBody');
+  tbody.innerHTML = '';
+  scRows.forEach((row, ri) => {
+    const tr = document.createElement('tr');
+    // Size label cell
+    const td0 = document.createElement('td');
+    td0.innerHTML = `<input value="${row[0]||''}" onchange="scRows[${ri}][0]=this.value;scSerialize()" placeholder="S / M / 38…" style="background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);outline:none;color:rgba(255,255,255,0.85);font-size:0.82rem;width:70px;padding:2px 4px">`;
+    tr.appendChild(td0);
+    // Value cells
+    scCols.forEach((_, ci) => {
+      const td = document.createElement('td');
+      td.innerHTML = `<input value="${row[ci+1]||''}" onchange="scRows[${ri}][${ci+1}]=this.value;scSerialize()" placeholder="—" style="background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.1);outline:none;color:rgba(255,255,255,0.75);font-size:0.82rem;width:90px;padding:2px 4px">`;
+      tr.appendChild(td);
+    });
+    // Delete row
+    const tdDel = document.createElement('td');
+    tdDel.innerHTML = `<span class="sc-del-row" onclick="scDelRow(${ri})" title="Remove row">✕</span>`;
+    tr.appendChild(tdDel);
+    tbody.appendChild(tr);
+  });
+  scSerialize();
+}
+
+function scAddRow() {
+  scRows.push(new Array(scCols.length + 1).fill(''));
+  scRender();
+}
+
+function scAddCol() {
+  const name = prompt('Column name likhein (e.g. Chest, Waist):');
+  if (!name) return;
+  scCols.push(name);
+  scRows.forEach(r => r.push(''));
+  scRender();
+}
+
+function scDelCol(ci) {
+  if (scCols.length <= 1) { alert('Kam se kam 1 column zaroori hai.'); return; }
+  scCols.splice(ci, 1);
+  scRows.forEach(r => r.splice(ci + 1, 1));
+  scRender();
+}
+
+function scDelRow(ri) {
+  scRows.splice(ri, 1);
+  scRender();
+}
+
+function loadSizeTemplate(tpl) {
+  const t = SC_TEMPLATES[tpl];
+  if (!t) return;
+  scCols = [...t.cols];
+  scRows = t.rows.map(r => [...r]);
+  scRender();
+}
+
+function clearSizeChart() {
+  scCols = []; scRows = [];
+  document.getElementById('size_chart_data').value = '';
+  scRender();
+}
+
+// Init — load existing data if editing
+(function() {
+  const existing = document.getElementById('size_chart_data').value;
+  if (existing) {
+    try {
+      const d = JSON.parse(existing);
+      scCols = d.cols || [];
+      scRows = d.rows || [];
+    } catch(e) { scCols = []; scRows = []; }
+  } else {
+    scCols = []; scRows = [];
+  }
+  scRender();
+})();
+
+</script>
+
+{% endblock %}

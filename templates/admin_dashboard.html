@@ -1,0 +1,157 @@
+{% extends "admin_layout.html" %}
+{% block admin_content %}
+
+<div class="mb-4">
+  <span class="section-label">Platform Overview</span>
+  <h1 class="mb-0">Admin Dashboard</h1>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3"><div class="kpi"><div class="kpi-icon">👥</div><div class="kpi-label">Total Users</div><div class="kpi-value">{{ k.users }}</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi"><div class="kpi-icon">🏪</div><div class="kpi-label">Total Sellers</div><div class="kpi-value">{{ k.sellers or 0 }}</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi"><div class="kpi-icon">📦</div><div class="kpi-label">Products</div><div class="kpi-value">{{ k.products }}</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi"><div class="kpi-icon">🛒</div><div class="kpi-label">Total Orders</div><div class="kpi-value">{{ k.orders }}</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi"><div class="kpi-icon">📅</div><div class="kpi-label">Today Orders</div><div class="kpi-value" style="color:#f59e0b">{{ k.today_orders }}</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi"><div class="kpi-icon">💰</div><div class="kpi-label">Today Revenue</div><div class="kpi-value" style="color:#22c55e;font-size:1.4rem">₹{{ "%.0f"|format(k.today_revenue) }}</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi"><div class="kpi-icon">📈</div><div class="kpi-label">Month Revenue</div><div class="kpi-value" style="color:#22c55e;font-size:1.4rem">₹{{ "%.0f"|format(k.month_revenue) }}</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi"><div class="kpi-icon">🏦</div><div class="kpi-label">Total Revenue</div><div class="kpi-value" style="color:#22c55e;font-size:1.4rem">₹{{ "%.0f"|format(k.total_revenue) }}</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi"><div class="kpi-icon">⏳</div><div class="kpi-label">Pending Orders</div><div class="kpi-value" style="color:#f87171">{{ k.pending_orders }}</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi"><div class="kpi-icon">💳</div><div class="kpi-label">Pending Payouts</div><div class="kpi-value" style="color:#a78bfa">{{ k.pending_payouts }}</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi"><div class="kpi-icon">🎫</div><div class="kpi-label">Open Tickets</div><div class="kpi-value" style="color:#60a5fa">{{ k.open_tickets }}</div></div></div>
+  <div class="col-6 col-md-3"><div class="kpi"><div class="kpi-icon">🔄</div><div class="kpi-label">Pending Returns</div><div class="kpi-value" style="color:#fb923c">{{ k.pending_returns }}</div></div></div>
+  <div class="col-6 col-md-3">
+    <div class="kpi" style="border-color:rgba(167,139,250,0.3)">
+      <div class="kpi-icon">🏪</div>
+      <div class="kpi-label">Resellers</div>
+      <div class="kpi-value" style="color:var(--accent)">{{ k.resellers or 0 }}</div>
+      <div class="kpi-sub"><a href="/admin/resellers" style="color:var(--accent);font-size:0.78rem">Manage →</a></div>
+    </div>
+  </div>
+</div>
+
+<!-- Revenue Chart -->
+<div class="card p-4 mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <span class="section-label">Platform Revenue</span>
+      <h3 class="mb-0">Last 30 Days</h3>
+    </div>
+    <div class="d-flex gap-2">
+      <a href="?period=daily" class="btn btn-sm {% if not period or period=='daily' %}btn-primary{% else %}btn-outline-light{% endif %}">Daily</a>
+      <a href="?period=weekly" class="btn btn-sm {% if period=='weekly' %}btn-primary{% else %}btn-outline-light{% endif %}">Weekly</a>
+      <a href="?period=monthly" class="btn btn-sm {% if period=='monthly' %}btn-primary{% else %}btn-outline-light{% endif %}">Monthly</a>
+    </div>
+  </div>
+  <canvas id="revenueChart" style="max-height:300px"></canvas>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card p-4">
+      <span class="section-label">Leaderboard</span>
+      <h3 class="mb-3">Top Sellers</h3>
+      {% if top_sellers %}
+      <div class="table-responsive">
+        <table class="table mb-0">
+          <thead><tr><th>#</th><th>Seller</th><th class="text-end">Revenue</th><th class="text-end">Orders</th></tr></thead>
+          <tbody>
+            {% for s in top_sellers %}
+            <tr>
+              <td class="small-muted">{{ loop.index }}</td>
+              <td class="fw-semibold">{{ s.name }}</td>
+              <td class="text-end" style="color:var(--gold2)">₹{{ "%.0f"|format(s.revenue) }}</td>
+              <td class="text-end small-muted">{{ s.orders }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div class="small-muted">No seller data yet.</div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-4">
+      <span class="section-label">Orders</span>
+      <h3 class="mb-3">Status Distribution</h3>
+      <canvas id="statusChart" style="max-height:200px"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="card p-4 mb-4">
+  <div class="fw-semibold mb-3">Quick Actions</div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-light" href="/admin/products">📦 Approve Products</a>
+    <a class="btn btn-outline-light" href="/admin/payouts">💳 Mark Payouts Paid</a>
+    <a class="btn btn-outline-light" href="/admin/returns">🔄 Review Returns</a>
+    <a class="btn btn-outline-light" href="/admin/sellers">👥 Manage Sellers</a>
+    <a class="btn btn-outline-light" href="/admin/tickets">🎫 Support Tickets</a>
+    <a class="btn btn-outline-light" href="/admin/coupons">🏷️ Coupons</a>
+    <a class="btn btn-outline-light" href="/admin/resellers">🏪 Resellers</a>
+    <a class="btn btn-outline-light" href="/admin/banners">🖼️ Banners</a>
+    <a class="btn btn-outline-light" href="/admin/flash-sales">⚡ Flash Sales</a>
+  </div>
+</div>
+
+<div class="card p-3">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="fw-semibold">Recent Orders</div>
+    <a href="/admin/orders" class="btn btn-sm btn-outline-light">View All</a>
+  </div>
+  {% if recent_orders %}
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead><tr><th>Order</th><th>Buyer</th><th>Status</th><th class="text-end">Total</th><th class="text-end">Date</th></tr></thead>
+      <tbody>
+        {% for o in recent_orders %}
+        <tr>
+          <td><a href="/admin/orders/{{ o.id }}" class="fw-semibold">#{{ o.public_id }}</a></td>
+          <td>{{ o.buyer_name }}</td>
+          <td><span class="badge-soft" style="font-size:0.75rem">{{ o.status }}</span></td>
+          <td class="text-end fw-semibold">₹{{ "%.0f"|format(o.total_amount) }}</td>
+          <td class="text-end small-muted">{{ o.created_at.strftime('%Y-%m-%d') if o.created_at else '' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const tt = { backgroundColor:'#0d0f1a', titleColor:'#e8ecf8', bodyColor:'#7a85a8', borderColor:'rgba(255,255,255,0.1)', borderWidth:1 };
+const ax = {
+  x:{ ticks:{color:'#7a85a8',font:{size:11}}, grid:{color:'rgba(255,255,255,0.04)'} },
+  y:{ ticks:{color:'#7a85a8',font:{size:11}}, grid:{color:'rgba(255,255,255,0.04)'} }
+};
+const revData = {{ chart_data | tojson }};
+new Chart(document.getElementById('revenueChart').getContext('2d'),{
+  type:'bar',
+  data:{ labels:revData.labels,
+    datasets:[
+      {label:'Revenue (₹)',data:revData.revenue,backgroundColor:'rgba(201,168,76,0.5)',borderColor:'#c9a84c',borderWidth:1,borderRadius:6},
+      {type:'line',label:'Orders',data:revData.orders,borderColor:'#a78bfa',backgroundColor:'transparent',tension:0.4,pointRadius:3,yAxisID:'y1'}
+    ]
+  },
+  options:{ responsive:true, plugins:{legend:{labels:{color:'#7a85a8',font:{size:12}}},tooltip:tt},
+    scales:{...ax, y1:{position:'right',ticks:{color:'#7a85a8',font:{size:11}},grid:{display:false}}} }
+});
+const stData = {{ status_data | tojson }};
+if(stData.labels&&stData.labels.length){
+  new Chart(document.getElementById('statusChart').getContext('2d'),{
+    type:'doughnut',
+    data:{ labels:stData.labels,
+      datasets:[{data:stData.counts,
+        backgroundColor:['rgba(52,211,153,.7)','rgba(201,168,76,.7)','rgba(167,139,250,.7)','rgba(248,113,113,.7)','rgba(96,165,250,.7)'],
+        borderWidth:0}]
+    },
+    options:{ responsive:true, plugins:{legend:{position:'bottom',labels:{color:'#7a85a8',font:{size:11},padding:10}},tooltip:tt} }
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-3">
+  <div class="col-lg-2 d-none d-lg-block">
+    <div class="sidebar">
+      <div class="sidebar-title">Admin Panel</div>
+      <a href="/admin" class="{% if request.path=="/admin" %}active{% endif %}"><span class="s-icon">📊</span>Dashboard</a>
+      <a href="/admin/orders" class="{% if "/admin/orders" in request.path %}active{% endif %}"><span class="s-icon">🛒</span>Orders</a>
+      <a href="/admin/products" class="{% if "/admin/products" in request.path %}active{% endif %}"><span class="s-icon">📦</span>Products</a>
+      <a href="/admin/sellers" class="{% if "/admin/sellers" in request.path %}active{% endif %}"><span class="s-icon">🏪</span>Sellers</a>
+      <a href="/admin/users" class="{% if "/admin/users" in request.path %}active{% endif %}"><span class="s-icon">👥</span>Users</a>
+      <a href="/admin/returns" class="{% if "/admin/returns" in request.path %}active{% endif %}"><span class="s-icon">🔄</span>Returns</a>
+      <a href="/admin/payouts" class="{% if "/admin/payouts" in request.path %}active{% endif %}"><span class="s-icon">💳</span>Payouts</a>
+      <a href="/admin/coupons" class="{% if "/admin/coupons" in request.path %}active{% endif %}"><span class="s-icon">🏷️</span>Coupons</a>
+      <a href="/admin/tickets" class="{% if "/admin/tickets" in request.path %}active{% endif %}"><span class="s-icon">🎫</span>Tickets</a>
+      <div class="sidebar-title" style="margin-top:12px">Marketing</div>
+      <a href="/admin/banners" class="{% if "/admin/banners" in request.path %}active{% endif %}"><span class="s-icon">🖼️</span>Banners</a>
+      <a href="/admin/flash-sales" class="{% if "/admin/flash" in request.path %}active{% endif %}"><span class="s-icon">⚡</span>Flash Sales</a>
+      <a href="/admin/resellers" class="{% if "/admin/resellers" in request.path %}active{% endif %}"><span class="s-icon">🏪</span>Resellers</a>
+    </div>
+  </div>
+  <div class="col-lg-10">
+    {% block admin_content %}{% block admin %}{% endblock %}{% endblock %}
+  </div>
+</div>
+{% endblock %}

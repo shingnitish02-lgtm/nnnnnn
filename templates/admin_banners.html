@@ -1,0 +1,119 @@
+{% extends "admin_layout.html" %}
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2>🖼️ Homepage Banners</h2>
+</div>
+
+<div class="card p-4 mb-4">
+  <div class="form-section-head">Add New Banner</div>
+  <form method="post" enctype="multipart/form-data" class="row g-3">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="add">
+
+    <div class="col-md-6"><label class="form-label">Title *</label><input class="form-control input" name="title" placeholder="Fashion Sale — Up to 80% Off" required></div>
+    <div class="col-md-6"><label class="form-label">Subtitle</label><input class="form-control input" name="subtitle" placeholder="India ke top sellers se direct kharido"></div>
+
+    <div class="col-12">
+      <label class="form-label fw-semibold">🔗 Banner Click Action</label>
+      <div class="row g-2">
+        <div class="col-md-6">
+          <label class="form-label small text-muted">Kisi Product se Link karo (optional)</label>
+          <select class="form-select input" name="product_id" id="productSelect" onchange="updateCTALink(this)">
+            <option value="">— Product nahi, custom link use karo —</option>
+            {% for p in products %}
+            <option value="{{ p.id }}" data-link="/p/{{ p.id }}">{{ p.title[:70] }}</option>
+            {% endfor %}
+          </select>
+          <div class="form-text">Product select karne par CTA link auto-set ho jaata hai</div>
+        </div>
+        <div class="col-md-6">
+          <label class="form-label small text-muted">Custom CTA Link</label>
+          <input class="form-control input" name="cta_link" id="ctaLinkInput" value="/search" placeholder="/search ya /category/fashion">
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4"><label class="form-label">CTA Button Text</label><input class="form-control input" name="cta_text" value="Shop Now →"></div>
+    <div class="col-md-3"><label class="form-label">Background Color</label><input class="form-control input" name="bg_color" type="color" value="#0f172a"></div>
+    <div class="col-md-3"><label class="form-label">Accent Color</label><input class="form-control input" name="accent_color" type="color" value="#8B5CF6"></div>
+    <div class="col-md-2"><label class="form-label">Sort Order</label><input class="form-control input" name="sort_order" type="number" value="0"></div>
+
+    <div class="col-12">
+      <label class="form-label">📷 Banner Image <span class="text-muted small">(optional — banner ke right side pe dikhega)</span></label>
+      <input class="form-control input" type="file" name="banner_image" accept="image/*" onchange="previewBannerImg(this)">
+      <div class="mt-2" id="bannerImgPreview" style="display:none">
+        <img id="bannerImgPreviewEl" src="" alt="Preview" style="height:80px;border-radius:8px;object-fit:cover">
+      </div>
+    </div>
+
+    <div class="col-12 d-flex justify-content-end"><button class="btn btn-primary px-4" type="submit">Add Banner</button></div>
+  </form>
+</div>
+
+<div class="card p-0 overflow-hidden">
+  <table class="table mb-0">
+    <thead><tr><th>Preview</th><th>Title</th><th>CTA / Link</th><th>Product</th><th>Order</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+      {% for b in banners %}
+      <tr>
+        <td>
+          <div style="width:60px;height:42px;border-radius:8px;background:{{ b.bg_color }};border:2px solid {{ b.accent_color }};overflow:hidden">
+            {% if b.image_url %}
+            <img src="{{ b.image_url }}" style="width:100%;height:100%;object-fit:cover">
+            {% else %}
+            <div style="width:100%;height:100%;background:radial-gradient(ellipse at 80% 50%,{{ b.accent_color }}55,transparent)"></div>
+            {% endif %}
+          </div>
+        </td>
+        <td>
+          <div class="fw-semibold">{{ b.title }}</div>
+          {% if b.subtitle %}<div class="small-muted" style="font-size:0.78rem">{{ b.subtitle[:50] }}</div>{% endif %}
+        </td>
+        <td><a href="{{ b.cta_link }}" class="small-muted" target="_blank">{{ b.cta_text }}<br><span style="font-size:0.75rem;opacity:0.7">{{ b.cta_link }}</span></a></td>
+        <td>
+          {% if b.product_id %}
+          <a href="/p/{{ b.product_id }}" target="_blank" class="badge-success" style="text-decoration:none">Product #{{ b.product_id }}</a>
+          {% else %}<span class="small-muted">—</span>{% endif %}
+        </td>
+        <td>{{ b.sort_order }}</td>
+        <td>{% if b.active %}<span class="badge-success">Active</span>{% else %}<span class="badge-danger">Hidden</span>{% endif %}</td>
+        <td>
+          <div class="d-flex gap-2">
+            <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="toggle"><input type="hidden" name="bid" value="{{ b.id }}"><button class="btn btn-sm btn-outline-light">{% if b.active %}Hide{% else %}Show{% endif %}</button></form>
+            <form method="post" onsubmit="return confirm('Delete?')"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="delete"><input type="hidden" name="bid" value="{{ b.id }}"><button class="btn btn-sm btn-danger">Delete</button></form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+      {% if not banners %}
+      <tr><td colspan="7" class="text-center small-muted py-4">Koi banner nahi — upar se add karo</td></tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+
+<script>
+function updateCTALink(sel) {
+  const inp = document.getElementById('ctaLinkInput');
+  const opt = sel.options[sel.selectedIndex];
+  if (opt.value) {
+    inp.value = opt.getAttribute('data-link');
+    inp.readOnly = true;
+    inp.style.opacity = '0.6';
+  } else {
+    inp.readOnly = false;
+    inp.style.opacity = '1';
+    inp.value = '/search';
+  }
+}
+function previewBannerImg(input) {
+  const preview = document.getElementById('bannerImgPreview');
+  const img = document.getElementById('bannerImgPreviewEl');
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => { img.src = e.target.result; preview.style.display = 'block'; };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+</script>
+{% endblock %}

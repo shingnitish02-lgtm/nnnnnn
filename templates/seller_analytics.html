@@ -1,0 +1,266 @@
+{% extends "seller_layout.html" %}
+{% block seller %}
+
+<div class="mb-4">
+  <span class="section-label">Insights</span>
+  <h1 class="mb-1">Analytics & Revenue</h1>
+  <p class="small-muted mb-0">Track your store performance over time.</p>
+</div>
+
+<!-- KPI Row -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="kpi">
+      <div class="kpi-icon">💰</div>
+      <div class="kpi-label">Total Revenue</div>
+      <div class="kpi-value">₹{{ "%.0f"|format(stats.total_revenue) }}</div>
+      <div class="kpi-sub">All time</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi">
+      <div class="kpi-icon">📅</div>
+      <div class="kpi-label">This Month</div>
+      <div class="kpi-value">₹{{ "%.0f"|format(stats.month_revenue) }}</div>
+      <div class="kpi-sub">{{ stats.month_orders }} orders</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi">
+      <div class="kpi-icon">🔄</div>
+      <div class="kpi-label">Return Rate</div>
+      <div class="kpi-value">{{ "%.1f"|format(stats.return_rate) }}%</div>
+      <div class="kpi-sub">{{ stats.total_returns }} returns</div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi">
+      <div class="kpi-icon">⭐</div>
+      <div class="kpi-label">Avg Rating</div>
+      <div class="kpi-value">{{ "%.1f"|format(stats.avg_rating) }}</div>
+      <div class="kpi-sub">{{ stats.total_reviews }} reviews</div>
+    </div>
+  </div>
+</div>
+
+<!-- Revenue Chart -->
+<div class="card p-4 mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+      <span class="section-label">Revenue Trend</span>
+      <h3 class="mb-0">Last 30 Days</h3>
+    </div>
+    <div class="d-flex gap-2">
+      <button class="btn btn-sm {% if chart_period=='daily' %}btn-primary{% else %}btn-outline-light{% endif %}" onclick="setChartPeriod('daily')">Daily</button>
+      <button class="btn btn-sm {% if chart_period=='weekly' %}btn-primary{% else %}btn-outline-light{% endif %}" onclick="setChartPeriod('weekly')">Weekly</button>
+    </div>
+  </div>
+  <canvas id="revenueChart" style="max-height:280px"></canvas>
+</div>
+
+<div class="row g-3 mb-4">
+  <!-- Top Products -->
+  <div class="col-md-6">
+    <div class="card p-4 h-100">
+      <span class="section-label">Best Sellers</span>
+      <h3 class="mb-3">Top Products by Revenue</h3>
+      {% if top_products %}
+      <div class="vstack gap-3">
+        {% for p in top_products %}
+        <div class="d-flex justify-content-between align-items-center">
+          <div style="flex:1;min-width:0">
+            <div class="fw-semibold" style="font-size:0.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.title }}</div>
+            <div class="small-muted">{{ p.total_qty }} units sold</div>
+            <div style="height:4px;background:var(--border2);border-radius:999px;margin-top:6px">
+              <div style="height:4px;background:linear-gradient(90deg,var(--gold),var(--accent));border-radius:999px;width:{{ p.pct }}%"></div>
+            </div>
+          </div>
+          <div class="ms-3 fw-semibold" style="color:var(--gold2);white-space:nowrap">₹{{ "%.0f"|format(p.revenue or 0) }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="small-muted">No sales data yet.</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Orders by Status -->
+  <div class="col-md-6">
+    <div class="card p-4 h-100">
+      <span class="section-label">Order Status</span>
+      <h3 class="mb-3">Breakdown</h3>
+      <canvas id="statusChart" style="max-height:220px"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Category Revenue Breakdown (NEW) -->
+<div class="row g-3 mb-4 mt-0">
+  <div class="col-md-6">
+    <div class="card p-4">
+      <span class="section-label">Category</span>
+      <h3 class="mb-3">Revenue by Category</h3>
+      <canvas id="categoryChart" style="max-height:220px"></canvas>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card p-4">
+      <span class="section-label">Top Performers</span>
+      <h3 class="mb-3">Best Selling Products</h3>
+      {% if top_products %}
+      <div class="vstack gap-2">
+        {% for tp in top_products[:6] %}
+        <div class="d-flex align-items-center gap-3">
+          <span class="small-muted" style="min-width:20px;font-size:0.8rem">{{ loop.index }}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:0.85rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ tp.title[:40] }}</div>
+            <div class="small-muted" style="font-size:0.75rem">{{ tp.total_qty }} units sold</div>
+          </div>
+          <span style="color:var(--gold2);font-weight:600;font-size:0.88rem;white-space:nowrap">₹{{ "%.0f"|format(tp.revenue or 0) }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="small-muted">No sales data yet.</div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Recent Transactions -->
+<div class="card p-4">
+  <span class="section-label">Wallet</span>
+  <h3 class="mb-3">Recent Transactions</h3>
+  {% if transactions %}
+  <div class="table-responsive">
+    <table class="table mb-0">
+      <thead><tr><th>Date</th><th>Type</th><th>Description</th><th class="text-end">Amount</th></tr></thead>
+      <tbody>
+        {% for t in transactions %}
+        <tr>
+          <td class="small-muted">{{ t.created_at.strftime('%Y-%m-%d') if t.created_at else '' }}</td>
+          <td><span class="badge-soft" style="font-size:0.75rem">{{ t.type }}</span></td>
+          <td class="small-muted">{{ t.meta or '—' }}</td>
+          <td class="text-end fw-semibold {% if t.amount > 0 %}text-success{% else %}text-danger{% endif %}">
+            {% if t.amount > 0 %}+{% endif %}₹{{ "%.2f"|format(t.amount) }}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="small-muted">No transactions yet.</div>
+  {% endif %}
+</div>
+
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const chartDefaults = {
+  responsive: true,
+  plugins: {
+    legend: { labels: { color: '#7a85a8', font: { size: 12 } } },
+    tooltip: {
+      backgroundColor: '#0d0f1a',
+      titleColor: '#e8ecf8',
+      bodyColor: '#7a85a8',
+      borderColor: 'rgba(255,255,255,0.1)',
+      borderWidth: 1
+    }
+  },
+  scales: {
+    x: { ticks: { color: '#7a85a8', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+    y: { ticks: { color: '#7a85a8', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+  }
+};
+
+const revData = {{ chart_data | tojson }};
+const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+const revenueChart = new Chart(revenueCtx, {
+  type: 'line',
+  data: {
+    labels: revData.labels,
+    datasets: [{
+      label: 'Revenue (₹)',
+      data: revData.revenue,
+      borderColor: '#c9a84c',
+      backgroundColor: 'rgba(201,168,76,0.08)',
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: '#c9a84c',
+      pointRadius: 3
+    },{
+      label: 'Orders',
+      data: revData.orders,
+      borderColor: '#a78bfa',
+      backgroundColor: 'rgba(167,139,250,0.06)',
+      fill: true,
+      tension: 0.4,
+      pointBackgroundColor: '#a78bfa',
+      pointRadius: 3,
+      yAxisID: 'y1'
+    }]
+  },
+  options: {
+    ...chartDefaults,
+    scales: {
+      ...chartDefaults.scales,
+      y1: { position: 'right', ticks: { color: '#7a85a8', font: { size: 11 } }, grid: { display: false } }
+    }
+  }
+});
+
+const statusData = {{ status_data | tojson }};
+if (statusData.labels.length) {
+  const statusCtx = document.getElementById('statusChart').getContext('2d');
+  new Chart(statusCtx, {
+    type: 'doughnut',
+    data: {
+      labels: statusData.labels,
+      datasets: [{
+        data: statusData.counts,
+        backgroundColor: ['rgba(52,211,153,0.7)','rgba(201,168,76,0.7)','rgba(167,139,250,0.7)','rgba(248,113,113,0.7)','rgba(96,165,250,0.7)'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#7a85a8', font: { size: 12 }, padding: 12 } },
+        tooltip: chartDefaults.plugins.tooltip
+      }
+    }
+  });
+}
+
+function setChartPeriod(period) {
+  window.location.href = '/seller/analytics?period=' + period;
+}
+
+// Category revenue chart
+const catData = {{ category_data | tojson }};
+if (catData && catData.labels && catData.labels.length) {
+  new Chart(document.getElementById('categoryChart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: catData.labels,
+      datasets: [{
+        data: catData.revenue,
+        backgroundColor: ['rgba(201,168,76,.75)','rgba(167,139,250,.75)','rgba(52,211,153,.75)','rgba(248,113,113,.75)','rgba(96,165,250,.75)','rgba(251,191,36,.75)'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position:'bottom', labels:{ color:'#7a85a8', font:{size:11}, padding:10 } },
+        tooltip: chartDefaults.plugins.tooltip
+      }
+    }
+  });
+}
+</script>
+{% endblock %}

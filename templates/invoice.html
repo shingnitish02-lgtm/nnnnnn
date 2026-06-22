@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Tax Invoice</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    @page { size: A4; margin: 12mm; }
+    body{ background:#fff; }
+    .wrap{ border:1px solid #111; border-radius:14px; padding:14px; }
+    .h1{ font-size:18px; font-weight:900; margin:0; }
+    .muted{ color:#555; font-size:12px; }
+    table{ width:100%; border-collapse:collapse; margin-top:10px; }
+    th, td{ border:1px solid #222; padding:8px; font-size:12px; vertical-align:top; }
+    th{ font-weight:800; background:#f3f3f3; }
+    .right{ text-align:right; }
+    .row{ display:flex; gap:12px; }
+    .col{ flex:1; }
+    .badge{ display:inline-block; border:1px solid #111; padding:4px 8px; border-radius:999px; font-weight:800; }
+  </style>
+</head>
+<body onload="window.print()">
+  <div class="wrap">
+    <div class="row" style="align-items:flex-start;">
+      <div class="col">
+        <p class="h1">Tax Invoice</p>
+        <div class="muted">Order: <b>#{{ o.public_id }}</b> • Payment: <b>{{ o.pay_mode }}</b></div>
+        <div class="muted">Invoice No: <b>{{ o.invoice_no or "-" }}</b> • Date: <b>{{ o.invoice_date or "-" }}</b></div>
+      </div>
+      <div style="text-align:right;">
+        <span class="badge">{{ "Buyer Copy" if buyer_view else ("Admin Copy" if admin_view else "Seller Copy") }}</span>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:10px;">
+      <div class="col" style="border:1px solid #222; border-radius:10px; padding:10px;">
+        <div class="muted">Sold By</div>
+        {% if seller %}
+          <div><b>{{ seller.name }}</b></div>
+          <div class="muted">{{ seller.address or "-" }}</div>
+          <div class="muted">Phone: {{ seller.phone or "-" }}</div>
+          <div class="muted">GSTIN: {{ seller.gstin or "-" }}</div>
+        {% else %}
+          <div><b>Multiple Sellers</b></div>
+          <div class="muted">Seller details per item (see table)</div>
+        {% endif %}
+      </div>
+      <div class="col" style="border:1px solid #222; border-radius:10px; padding:10px;">
+        <div class="muted">Bill To (Buyer)</div>
+        <div><b>{{ o.buyer_name }}</b></div>
+        <div class="muted">{{ o.phone }}</div>
+        <div class="muted">{{ o.address }}</div>
+      </div>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th style="width:32%;">Item</th>
+          <th style="width:10%;">HSN/SAC</th>
+          <th style="width:8%;">Qty</th>
+          <th style="width:10%;" class="right">Price</th>
+          <th style="width:10%;" class="right">GST %</th>
+          <th style="width:12%;" class="right">Line Total</th>
+          {% if buyer_view or admin_view %}
+            <th style="width:18%;">Seller</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% set subtotal = 0 %}
+        {% set gst_total = 0 %}
+        {% for it in items %}
+          {% set line = (it.price * it.qty) %}
+          {% set gst_amt = (line * (it.gst_percent/100.0)) %}
+          {% set subtotal = subtotal + line %}
+          {% set gst_total = gst_total + gst_amt %}
+          <tr>
+            <td><b>{{ it.title }}</b></td>
+            <td>{{ it.hsn_final or "-" }}</td>
+            <td class="right">{{ it.qty }}</td>
+            <td class="right">₹{{ "%.2f"|format(it.price) }}</td>
+            <td class="right">{{ "%.2f"|format(it.gst_percent) }}</td>
+            <td class="right">₹{{ "%.2f"|format(line + gst_amt) }}</td>
+            {% if buyer_view or admin_view %}
+              <td>
+                <div><b>{{ it.seller_name or "-" }}</b></div>
+                <div class="muted">GSTIN: {{ it.seller_gstin or "-" }}</div>
+              </td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="row" style="margin-top:10px;">
+      <div class="col">
+        <div class="muted">Notes</div>
+        <div class="muted">This is a computer generated invoice.</div>
+      </div>
+      <div class="col" style="text-align:right;">
+        <div class="muted">Subtotal: ₹{{ "%.2f"|format(o.subtotal) }}</div>
+        <div class="muted">GST Total: ₹{{ "%.2f"|format(o.gst_total) }}</div>
+        <div class="muted">Shipping: ₹{{ "%.2f"|format(o.shipping) }}</div>
+        <div style="font-size:16px; font-weight:900;">Grand Total: ₹{{ "%.2f"|format(o.total_amount) }}</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
