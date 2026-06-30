@@ -1,0 +1,81 @@
+{% extends "admin_layout.html" %}
+{% block admin %}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <div>
+    <span class="section-label">Platform Users</span>
+    <h1 class="mb-0">Manage Sellers</h1>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="?status=pending" class="btn btn-sm {% if status=='pending' %}btn-primary{% else %}btn-outline-light{% endif %}">Pending KYC</a>
+    <a href="?status=active" class="btn btn-sm {% if status=='active' %}btn-primary{% else %}btn-outline-light{% endif %}">Active</a>
+    <a href="?status=suspended" class="btn btn-sm {% if status=='suspended' %}btn-primary{% else %}btn-outline-light{% endif %}">Suspended</a>
+    <a href="?status=" class="btn btn-sm {% if not status %}btn-primary{% else %}btn-outline-light{% endif %}">All</a>
+  </div>
+</div>
+
+<div class="card p-3">
+  {% if sellers %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr><th>Seller</th><th>GSTIN</th><th>Products</th><th>Revenue</th><th>Orders</th><th>Rating</th><th>Status</th><th>Joined</th><th class="text-end">Action</th></tr>
+      </thead>
+      <tbody>
+        {% for s in sellers %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ s.name }}</div>
+            <div class="small-muted">{{ s.email }}</div>
+          </td>
+          <td class="small-muted" style="font-size:0.8rem">{{ s.gstin or '—' }}</td>
+          <td>{{ s.product_count or 0 }}</td>
+          <td style="color:var(--gold2)">₹{{ "%.0f"|format(s.total_revenue or 0) }}</td>
+          <td>{{ s.order_count or 0 }}</td>
+          <td>
+            {% if s.avg_rating %}
+            <span class="star" style="font-size:0.8rem">★</span>
+            <span style="font-size:0.85rem"> {{ "%.1f"|format(s.avg_rating) }}</span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if s.seller_status == 'suspended' %}<span class="badge-danger">Suspended</span>
+            {% elif s.seller_status == 'pending' %}<span class="badge-warn">Pending</span>
+            {% else %}<span class="badge-success">Active</span>{% endif %}
+          </td>
+          <td class="small-muted">{{ s.created_at.strftime('%Y-%m-%d') if s.created_at else '' }}</td>
+          <td class="text-end">
+            <div class="d-flex gap-1 justify-content-end">
+              {% if s.seller_status == 'pending' %}
+              <form method="post" action="/admin/sellers/{{ s.id }}/approve">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-primary">Approve</button>
+              </form>
+              {% endif %}
+              {% if s.seller_status != 'suspended' %}
+              <form method="post" action="/admin/sellers/{{ s.id }}/suspend" onsubmit="return confirm('Suspend this seller?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-danger">Suspend</button>
+              </form>
+              {% else %}
+              <form method="post" action="/admin/sellers/{{ s.id }}/unsuspend">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-light">Unsuspend</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty text-center">
+    <div style="font-size:2.5rem;margin-bottom:10px">🏪</div>
+    <p class="small-muted mb-0">No sellers found.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>{% block page_title %}{{ title or "Xoptime — Cart Heart Home" }}{% endblock %}</title>
+  <meta name="description" content="{% block meta_desc %}Xoptime — Cart Heart Home. Lakhon products, best prices, fast delivery across India.{% endblock %}">
+  <!-- Open Graph / WhatsApp / Social sharing -->
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  <meta property="og:title" content="{% block og_title %}{{ title or 'Xoptime' }}{% endblock %}">
+  <meta property="og:description" content="{% block og_desc %}Xoptime — Cart Heart Home. India ka trusted marketplace — fashion, electronics, home & more.{% endblock %}">
+  <meta property="og:image" content="{% block og_image %}{{ request.host_url }}static/icon-512.png{% endblock %}">
+  <meta property="og:url" content="{{ request.url }}">
+  <meta property="og:site_name" content="Xoptime">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='apple-touch-icon.png') }}">
+  <meta name="theme-color" content="#07080d">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<script>
+  // Splash sirf ek baar per app-session dikhana hai (pehli load pe), navigation pe nahi
+  if (sessionStorage.getItem('xt_splash_shown')) {
+    document.documentElement.classList.add('no-splash');
+  } else {
+    sessionStorage.setItem('xt_splash_shown', '1');
+  }
+</script>
+<style>.no-splash #appSplash{display:none!important}</style>
+
+<div id="appSplash" style="position:fixed;inset:0;z-index:99999;background:#2b0e4d;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:opacity .4s ease">
+  <img src="{{ url_for('static', filename='splash-logo.png') }}" alt="XopTime" style="width:min(78vw,420px);height:auto">
+  <p style="color:rgba(255,255,255,0.75);font-size:1.05rem;letter-spacing:0.12em;margin-top:14px;font-weight:500;text-transform:uppercase">Cart Heart Home</p>
+</div>
+<script>
+(function(){
+  var splash = document.getElementById('appSplash');
+  if (document.documentElement.classList.contains('no-splash')) { if(splash) splash.remove(); return; }
+  function hide(){
+    if(!splash) return;
+    splash.style.opacity = '0';
+    setTimeout(function(){ splash.remove(); }, 400);
+  }
+  if (document.readyState === 'complete') {
+    setTimeout(hide, 600);
+  } else {
+    window.addEventListener('load', function(){ setTimeout(hide, 600); });
+  }
+  setTimeout(hide, 2500); // safety fallback
+})();
+</script>
+
+
+<nav class="navbar navbar-expand-lg navbar-dark sticky-top">
+  <div class="container">
+    {% if request.path != '/' %}
+    <button onclick="history.back()" class="btn btn-sm btn-outline-light d-lg-none me-1" style="padding:5px 10px;font-size:1rem">&#8592;</button>
+    {% endif %}
+    <a class="navbar-brand" href="/profile" style="font-size:1.5rem;line-height:1">👤</a>
+    <div class="d-flex d-lg-none align-items-center gap-2 ms-auto me-2" style="flex:1">
+      {% if (session.get("role")=="buyer" or not session.get("user_id")) and (request.path == '/' or request.path.startswith('/p/')) %}
+      <form class="d-flex flex-grow-1" method="get" action="/search" style="position:relative;max-width:100%" autocomplete="off">
+        <input class="form-control form-control-sm input" name="q" id="searchMobile" placeholder="Search products..." value="{{ request.args.get('q','') }}" style="border-radius:10px 0 0 10px!important;border-right:none!important;font-size:0.85rem" oninput="searchSuggest(this,'suggestMobile')">
+        <button class="btn btn-sm btn-outline-light" type="submit" style="border-radius:0 10px 10px 0;border-left:none;padding:4px 8px">🔍</button>
+        <div id="suggestMobile" class="search-suggest-box" style="display:none"></div>
+      </form>
+      {% endif %}
+      {% if session.get("user_id") and session.get("role")=="buyer" %}
+      <a href="/wishlist" class="btn btn-sm btn-outline-light" style="padding:5px 10px">♡</a>
+      <a href="/cart" class="btn btn-sm btn-outline-light" style="padding:5px 10px">🛒{% if cart_count %}<span class="badge bg-danger ms-1" style="font-size:0.6rem">{{ cart_count }}</span>{% endif %}</a>
+      {% endif %}
+    </div>
+
+    <div id="nav" class="collapse navbar-collapse">
+      <!-- Search bar (desktop) -->
+      {% if (session.get("role")=="buyer" or not session.get("user_id")) and (request.path == '/' or request.path.startswith('/p/')) %}
+      <form class="d-none d-lg-flex ms-3 me-auto" method="get" action="/search" style="max-width:340px;flex:1;position:relative" autocomplete="off">
+        <input class="form-control input" name="q" id="searchDesktop" placeholder="Search products..." value="{{ request.args.get('q','') }}" style="border-radius:14px 0 0 14px!important;border-right:none!important" oninput="searchSuggest(this,'suggestDesktop')">
+        <button class="btn btn-outline-light" type="submit" style="border-radius:0 14px 14px 0;border-left:none">🔍</button>
+        <div id="suggestDesktop" class="search-suggest-box" style="display:none"></div>
+      </form>
+      {% endif %}
+      <ul class="navbar-nav ms-auto gap-1 align-items-lg-center">
+        {% if session.get("user_id") and session.get("role")=="buyer" %}
+          <li class="nav-item"><a class="nav-link" href="/">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="/categories">Categories</a></li>
+          <li class="nav-item"><a class="nav-link" href="/cart">🛒 Cart{% if cart_count %} <span class="badge bg-danger ms-1" style="font-size:0.65rem">{{ cart_count }}</span>{% endif %}</a></li>
+          <!-- Profile Dropdown -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle d-flex align-items-center gap-1" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="gap:6px">
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16"><path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4zm-1-.004c-.001-.246-.154-.986-.832-1.664C11.516 10.68 10.029 10 8 10c-2.029 0-3.516.68-4.168 1.332-.678.678-.83 1.418-.832 1.664h10z"/></svg>
+              {{ session.get("name", "Profile") }}{% if unread_notif %} <span class="badge bg-danger ms-1" style="font-size:0.6rem">{{ unread_notif }}</span>{% endif %}
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" style="min-width:200px;background:var(--card);border:1px solid var(--border);border-radius:12px;padding:8px">
+              <li><a class="dropdown-item" href="/profile" style="border-radius:8px">👤 Profile</a></li>
+              <li><a class="dropdown-item" href="/orders" style="border-radius:8px">📦 My Orders</a></li>
+              <li><a class="dropdown-item" href="/wishlist" style="border-radius:8px">♡ Wishlist</a></li>
+              <li>
+                <a class="dropdown-item d-flex justify-content-between align-items-center" href="/notifications" style="border-radius:8px">
+                  🔔 Notifications{% if unread_notif %} <span class="badge bg-danger" style="font-size:0.6rem">{{ unread_notif }}</span>{% endif %}
+                </a>
+              </li>
+              <li><a class="dropdown-item" href="/referral" style="border-radius:8px">🎁 Referral</a></li>
+              {% if session.get("is_reseller") %}
+              <li><a class="dropdown-item" href="/reseller/dashboard" style="border-radius:8px;color:var(--accent)">🏪 Reseller Dashboard</a></li>
+              {% else %}
+              <li><a class="dropdown-item" href="/become-reseller" style="border-radius:8px;color:var(--gold2)">💰 Earn with Xoptime</a></li>
+              {% endif %}
+              <li><a class="dropdown-item" href="/support" style="border-radius:8px">💬 Help & Support</a></li>
+              <li><hr class="dropdown-divider" style="border-color:var(--border)"></li>
+              <li><a class="dropdown-item text-danger" href="/logout" style="border-radius:8px">🚪 Logout</a></li>
+            </ul>
+          </li>
+        {% elif session.get("user_id") and session.get("role")=="seller" %}
+          <li class="nav-item"><span class="badge-soft badge-gold">Seller</span></li>
+          {% if request.path != '/seller/kyc' %}
+          <li class="nav-item"><a class="nav-link" href="/seller/dashboard">Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" href="/seller/analytics">Analytics</a></li>
+          <li class="nav-item">
+            <a class="nav-link" href="/notifications">
+              Notifications{% if unread_notif %} <span class="badge bg-danger ms-1" style="font-size:0.65rem">{{ unread_notif }}</span>{% endif %}
+            </a>
+          </li>
+          <li class="nav-item"><a class="nav-link" href="/support">Help</a></li>
+          {% endif %}
+        {% elif session.get("user_id") and session.get("role")=="admin" %}
+          <li class="nav-item"><span class="badge-soft" style="color:var(--rose)">Admin</span></li>
+          <li class="nav-item"><a class="nav-link" href="/admin">Dashboard</a></li>
+          <li class="nav-item"><a class="nav-link" href="/admin/tickets">Tickets</a></li>
+          <li class="nav-item"><a class="nav-link" href="/admin/returns">Returns</a></li>
+          <li class="nav-item">
+            <a class="nav-link" href="/notifications">
+              Notifications{% if unread_notif %} <span class="badge bg-danger ms-1" style="font-size:0.65rem">{{ unread_notif }}</span>{% endif %}
+            </a>
+          </li>
+        {% endif %}
+        {% if session.get("user_id") and session.get("role") != "buyer" %}
+          <li class="nav-item ms-2">
+            <span class="small-muted" style="font-size:0.82rem">Hi, <strong style="color:var(--gold2)">{{ session.get("name") }}</strong></span>
+          </li>
+          <li class="nav-item"><a class="btn btn-sm btn-outline-light ms-1" href="/logout">Logout</a></li>
+        {% elif not session.get("user_id") %}
+          <li class="nav-item"><a class="nav-link" href="/track">📦 Track Order</a></li>
+          <li class="nav-item"><a class="btn btn-sm btn-outline-light ms-1" href="/login">Login</a></li>
+          <li class="nav-item"><a class="btn btn-sm btn-primary ms-1" href="/register">Register</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<main class="container py-4 fade-up">
+  {% with msgs = get_flashed_messages(with_categories=true) %}
+    {% if msgs %}
+      {% for cat, msg in msgs %}
+        <div class="alert {% if cat=='ok' %}alert-success{% elif cat=='err' %}alert-danger{% else %}alert-warning{% endif %} mb-3" style="border-radius:14px">
+          {{ msg }}
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+
+<!-- Mobile Bottom Navigation -->
+{% if session.get("role") == "buyer" and request.path.startswith('/p/') %}
+<!-- Mobile sticky CTA bar — shown only when original buttons scrolled out of view -->
+<div id="base-cta-bar" class="d-lg-none" style="position:fixed;bottom:-80px;left:0;right:0;z-index:1060;display:flex;box-shadow:0 -2px 16px rgba(0,0,0,0.25);background:var(--card,#18181b);transition:bottom 0.3s cubic-bezier(.4,0,.2,1);">
+  <button onclick="document.getElementById('cartForm') && document.getElementById('cartForm').submit()" style="flex:1;background:transparent;border:none;border-right:1px solid rgba(155,31,232,0.3);color:#9b1fe8;font-size:15px;font-weight:800;padding:16px 0;cursor:pointer;font-family:inherit;">🛒 Add to Cart</button>
+  <button onclick="typeof submitBuyNow==='function' && submitBuyNow()" style="flex:1;background:#9b1fe8;border:none;color:#fff;font-size:15px;font-weight:800;padding:16px 0;cursor:pointer;font-family:inherit;">▶▶ Buy Now</button>
+</div>
+<style>
+/* On mobile product page — add padding so bar doesn't cover content */
+@media (max-width: 991px) {
+  body { padding-bottom: 70px !important; }
+}
+</style>
+<script>
+(function() {
+  // Product page pe hi chalega
+  if (!document.getElementById('base-cta-bar')) return;
+  
+  function initCtaScroll() {
+    var bar = document.getElementById('base-cta-bar');
+    // Mobile inline buttons wala div (jo product.html mein hai - delivery/ratings section ke upar wala area)
+    // Hum "Check Delivery" section ko anchor banate hain - woh dikhna band ho toh bar show karo
+    var anchor = document.getElementById('mobile-inline-btns') || document.getElementById('cartForm');
+    if (!bar || !anchor) return;
+
+    function checkVisibility() {
+      var rect = anchor.getBoundingClientRect();
+      // Jab form (Add to Cart area) screen ke neeche chali jaye ya upar scroll ho jaye
+      if (rect.bottom < 0 || rect.top > window.innerHeight) {
+        bar.style.bottom = '0';
+      } else {
+        bar.style.bottom = '-80px';
+      }
+    }
+
+    window.addEventListener('scroll', checkVisibility, { passive: true });
+    checkVisibility(); // initial check
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCtaScroll);
+  } else {
+    initCtaScroll();
+  }
+})();
+</script>
+{% elif session.get("role") == "buyer" and not request.path.startswith('/p/') %}
+<nav class="mobile-nav">
+  <div class="mobile-nav-items">
+    <a href="/" class="mobile-nav-item {% if request.path=='/' %}active{% endif %}"><span class="nav-icon">🏠</span>Home</a>
+    <a href="/categories" class="mobile-nav-item {% if request.path.startswith('/categories') %}active{% endif %}"><span class="nav-icon">🗂️</span>Categories</a>
+    <a href="/search" class="mobile-nav-item {% if request.path=="/search" %}active{% endif %}"><span class="nav-icon">🔍</span>Search</a>
+    <a href="/orders" class="mobile-nav-item {% if request.path.startswith('/orders') %}active{% endif %}"><span class="nav-icon">📦</span>Orders</a>
+  </div>
+</nav>
+{% elif session.get("role") == "seller" %}
+<nav class="mobile-nav">
+  <div class="mobile-nav-items">
+    <a href="/seller/dashboard" class="mobile-nav-item {% if '/seller/dashboard' in request.path %}active{% endif %}"><span class="nav-icon">📊</span>Dashboard</a>
+    <a href="/seller/orders" class="mobile-nav-item {% if '/seller/orders' in request.path %}active{% endif %}">
+      <span class="nav-icon">🛒</span>{% if unread_notif %}<span class="mobile-nav-badge">{{ unread_notif }}</span>{% endif %}Orders
+    </a>
+    <a href="/seller/products" class="mobile-nav-item {% if '/seller/products' in request.path %}active{% endif %}"><span class="nav-icon">📦</span>Products</a>
+    <a href="/seller/analytics" class="mobile-nav-item {% if '/seller/analytics' in request.path %}active{% endif %}"><span class="nav-icon">📈</span>Analytics</a>
+    <a href="/seller/wallet" class="mobile-nav-item {% if '/seller/wallet' in request.path %}active{% endif %}"><span class="nav-icon">💰</span>Wallet</a>
+  </div>
+</nav>
+{% elif session.get("role") == "admin" %}
+<nav class="mobile-nav">
+  <div class="mobile-nav-items">
+    <a href="/admin" class="mobile-nav-item {% if request.path=='/admin' %}active{% endif %}"><span class="nav-icon">📊</span>Dashboard</a>
+    <a href="/admin/orders" class="mobile-nav-item {% if '/admin/orders' in request.path %}active{% endif %}"><span class="nav-icon">🛒</span>Orders</a>
+    <a href="/admin/products" class="mobile-nav-item {% if '/admin/products' in request.path %}active{% endif %}"><span class="nav-icon">📦</span>Products</a>
+    <a href="/admin/sellers" class="mobile-nav-item {% if '/admin/sellers' in request.path %}active{% endif %}"><span class="nav-icon">🏪</span>Sellers</a>
+    <a href="/admin/payouts" class="mobile-nav-item {% if '/admin/payouts' in request.path %}active{% endif %}"><span class="nav-icon">💳</span>Payouts</a>
+  </div>
+</nav>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+{% block scripts %}{% endblock %}
+<script>
+// ── Search Autocomplete ──────────────────────────────────────
+function searchSuggest(inp, boxId) {
+  const box = document.getElementById(boxId);
+  const q = inp.value.trim();
+  if (q.length < 2) { box.style.display='none'; return; }
+  fetch('/api/search-suggest?q=' + encodeURIComponent(q))
+    .then(r => r.json()).then(data => {
+      if (!data.length) { box.style.display='none'; return; }
+      box.innerHTML = data.map(d =>
+        `<div class="suggest-item" onclick="window.location='/search?q=${encodeURIComponent(d.text)}'">
+          <span style="font-size:0.75rem;color:var(--muted);margin-right:6px">${d.type==='category'?'📁':d.type==='brand'?'🏷️':'🔍'}</span>${d.text}
+        </div>`
+      ).join('');
+      box.style.display = 'block';
+    }).catch(()=>{});
+}
+document.addEventListener('click', e => {
+  document.querySelectorAll('.search-suggest-box').forEach(b => {
+    if (!b.contains(e.target) && !b.previousElementSibling?.contains(e.target)) b.style.display='none';
+  });
+});
+
+// ── Push Notifications ───────────────────────────────────────
+{% if session.get("role") == "buyer" %}
+async function enablePush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    const sw = await navigator.serviceWorker.ready;
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') return;
+    const sub = await sw.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: null });
+    await fetch('/api/push-subscribe', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(sub) });
+  } catch(e) {}
+}
+{% endif %}
+
+// ── Seller: New Orders Poll ───────────────────────────────────
+{% if session.get("role") == "seller" %}
+(function checkNewOrders() {
+  var lastCount = parseInt(document.querySelector('.badge.bg-danger')?.textContent || '0');
+  setInterval(function() {
+    fetch('/seller/ping').then(r=>r.json()).then(d=>{
+      if (d.pending > lastCount) {
+        lastCount = d.pending;
+        try {
+          var ctx = new (window.AudioContext||window.webkitAudioContext)();
+          var o = ctx.createOscillator(); var g = ctx.createGain();
+          o.connect(g); g.connect(ctx.destination);
+          o.frequency.value=880; g.gain.value=0.3;
+          o.start(); g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.5);
+          o.stop(ctx.currentTime+0.5);
+        } catch(e){}
+        if (Notification.permission==='granted') {
+          new Notification('Xoptime — Naya Order!',{body:d.pending+' pending order(s) hain.',icon:'/static/icon-192.png'});
+        } else if (Notification.permission!=='denied') { Notification.requestPermission(); }
+        document.querySelectorAll('.pending-badge').forEach(el=>{ el.textContent=d.pending; el.style.display=d.pending?'':'none'; });
+      }
+    }).catch(()=>{});
+  }, 30000);
+})();
+{% endif %}
+
+// ── Auto-dismiss flash alerts ─────────────────────────────────
+document.querySelectorAll('.alert').forEach(el=>{
+  setTimeout(()=>{ el.style.transition='opacity 0.5s'; el.style.opacity='0'; setTimeout(()=>el.style.display='none',500); },4000);
+});
+</script>
+<script>
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", ()=>{
+    navigator.serviceWorker.register("{{ url_for('static',filename='service-worker.js') }}").catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,253 @@
+{% extends "base.html" %}
+{% block content %}
+
+<!-- BANNER CAROUSEL -->
+{% if banners %}
+<div id="heroBanners" class="carousel slide mb-4" data-bs-ride="carousel" data-bs-interval="4500">
+  <div class="carousel-inner" style="border-radius:var(--r-xl);overflow:hidden">
+    {% for b in banners %}
+    <div class="carousel-item {% if loop.first %}active{% endif %}"
+         style="background:{{ b.bg_color }};min-height:200px;position:relative;overflow:hidden">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 80% 50%,{{ b.accent_color }}33,transparent 70%)"></div>
+      <div class="d-flex align-items-center justify-content-between p-4 p-lg-5" style="min-height:200px;position:relative;z-index:1">
+        <div style="max-width:{% if b.image_url or b.product_image_url %}58%{% else %}540px{% endif %}">
+          <div class="section-label mb-2" style="color:{{ b.accent_color }}">Xoptime</div>
+          <h2 style="font-size:1.8rem;color:#fff;margin-bottom:8px;line-height:1.2">{{ b.title }}</h2>
+          {% if b.subtitle %}<p style="color:rgba(255,255,255,0.7);margin-bottom:16px;font-size:0.95rem">{{ b.subtitle }}</p>{% endif %}
+          <a href="{{ b.cta_link }}" class="btn btn-sm px-4 py-2 fw-semibold"
+             style="background:{{ b.accent_color }};color:#fff;border-radius:999px;font-size:0.88rem">{{ b.cta_text }}</a>
+        </div>
+        {% set banner_img = b.image_url or b.product_image_url %}
+        {% if banner_img %}
+        <div style="flex-shrink:0;width:38%;max-width:160px">
+          <img src="{{ banner_img }}" alt="{{ b.title }}"
+               style="width:100%;height:160px;object-fit:contain;filter:drop-shadow(0 8px 24px rgba(0,0,0,0.4));border-radius:12px">
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% if banners|length > 1 %}
+  <div class="carousel-indicators" style="margin-bottom:12px">
+    {% for b in banners %}
+    <button type="button" data-bs-target="#heroBanners" data-bs-slide-to="{{ loop.index0 }}"
+            {% if loop.first %}class="active"{% endif %}
+            style="width:24px;height:4px;border-radius:999px;border:none;background:rgba(255,255,255,0.5)"></button>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% else %}
+<div class="hero mb-4">
+  <div class="row align-items-center">
+    <div class="col-lg-7">
+      <span class="section-label">India's Trusted Marketplace</span>
+      <h1 class="mb-2" style="font-size:2.4rem;line-height:1.2">Shop from <span style="color:var(--gold2)">Thousands</span> of Sellers</h1>
+      <p class="small-muted mb-1" style="font-size:1.05rem;max-width:480px;font-weight:600;letter-spacing:0.06em;color:var(--gold2)">Cart Heart Home</p>
+      <p class="small-muted mb-4" style="font-size:1rem;max-width:480px">Fashion, electronics, home &amp; more — all at best prices with fast delivery across India.</p>
+      <form method="get" action="/search" class="d-none d-lg-flex gap-2" style="max-width:460px">
+        <input class="form-control input" name="q" placeholder="Search products, brands, categories..." style="border-radius:14px!important">
+        <button class="btn btn-primary px-4" type="submit" style="border-radius:14px;white-space:nowrap">Search</button>
+      </form>
+    </div>
+    <div class="col-lg-5 d-none d-lg-flex justify-content-end align-items-center gap-3 mt-4 mt-lg-0">
+      <div class="text-center"><div style="font-size:2.2rem;font-weight:700;color:var(--gold2)">{{ stats.products }}+</div><div class="small-muted">Products</div></div>
+      <div style="width:1px;height:48px;background:var(--border2)"></div>
+      <div class="text-center"><div style="font-size:2.2rem;font-weight:700;color:var(--accent)">{{ stats.sellers }}+</div><div class="small-muted">Sellers</div></div>
+      <div style="width:1px;height:48px;background:var(--border2)"></div>
+      <div class="text-center"><div style="font-size:2.2rem;font-weight:700;color:var(--success)">{{ stats.orders }}+</div><div class="small-muted">Orders</div></div>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+
+
+<!-- FLASH SALE -->
+{% if flash_sale or flash_sale_products %}
+<div class="mb-4">
+  {% if flash_sale %}
+  <div class="d-flex align-items-center gap-3 mb-3 p-3"
+       style="background:linear-gradient(90deg,rgba(239,68,68,0.15),rgba(251,146,60,0.1));border:1px solid rgba(239,68,68,0.3);border-radius:var(--r-lg)">
+    <div style="font-size:1.8rem">⚡</div>
+    <div style="flex:1">
+      <div class="fw-semibold" style="color:#f87171;font-size:1rem">{{ flash_sale.title }}</div>
+      {% if flash_sale.subtitle %}<div class="small-muted">{{ flash_sale.subtitle }}</div>{% endif %}
+    </div>
+    {% if flash_sale.ends_at %}
+    <div class="text-end">
+      <div class="small-muted" style="font-size:0.75rem">Ends in</div>
+      <div id="flashCountdown" class="fw-semibold" style="color:#f87171;font-size:1rem" data-end="{{ flash_sale.ends_at }}">--:--:--</div>
+    </div>
+    {% endif %}
+    {% if flash_sale.discount_pct > 0 %}
+    <span style="background:#f87171;color:#fff;padding:6px 14px;border-radius:999px;font-size:0.8rem;font-weight:700;white-space:nowrap">{{ flash_sale.discount_pct|int }}% OFF</span>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% if flash_sale_products %}
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div><span class="section-label" style="color:#f87171">⚡ Flash Sale</span><h2 class="mb-0">Limited Time Deals</h2></div>
+    <a href="/search" class="btn btn-sm btn-outline-light">View All</a>
+  </div>
+  <div class="row g-3">
+    {% for p in flash_sale_products %}
+    {% set dp = (p.flash_sale_price if p.flash_sale_price else p.price) %}
+    <div class="col-6 col-md-3">
+      <a href="/p/{{ p.id }}" class="text-decoration-none">
+        <div class="card prod-card p-0 overflow-hidden" style="border-color:rgba(239,68,68,0.25)">
+          <div style="position:relative">
+            <img src="{{ p.image_url or url_for('static',filename='placeholder.png') }}" alt="{{ p.title }}" class="prod-img" style="height:200px;border-radius:0" loading="lazy">
+            <span style="position:absolute;top:8px;left:8px;background:#f87171;color:#fff;font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:999px">⚡ FLASH</span>
+            {% if p.mrp and p.mrp > dp %}<span style="position:absolute;top:8px;right:8px;background:rgba(0,0,0,0.7);color:#f87171;font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:999px">{{ "%.0f"|format(((p.mrp-dp)/p.mrp)*100) }}% OFF</span>{% endif %}
+          </div>
+          <div class="p-3">
+            <div class="small-muted" style="font-size:0.72rem;text-transform:uppercase">{{ p.category }}</div>
+            <div class="prod-title mt-1">{{ p.title[:50] }}{% if p.title|length>50 %}...{% endif %}</div>
+            <div class="d-flex align-items-baseline gap-2 mt-2">
+              <span class="prod-price" style="color:#f87171">Rs.{{ "%.0f"|format(dp) }}</span>
+              {% if p.mrp and p.mrp > dp %}<span class="prod-mrp">Rs.{{ "%.0f"|format(p.mrp) }}</span>{% endif %}
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endif %}
+
+<!-- CATEGORIES -->
+<div class="mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div><span class="section-label">Browse</span><h2 class="mb-0">Shop by Category</h2></div>
+    <a href="/search" class="btn btn-sm btn-outline-light">View All</a>
+  </div>
+  <div class="row g-2">
+    {% set cat_icons = {'Fashion':'👗','Electronics':'📱','Home':'🏠','Kitchen':'🍳','Sports':'⚽','Beauty':'💄','Toys':'🧸','Books':'📚','Jewellery':'💍','Footwear':'👟','Bags':'👜','Accessories':'🕶️','General':'🛍️','Clothing':'👕','Mobiles':'📲','Appliances':'🔌'} %}
+    {% for cat in categories %}
+    <div class="col-4 col-md-2">
+      <a href="/search?category={{ cat }}" class="card p-3 text-center text-decoration-none d-block cat-pill">
+        <div style="font-size:1.8rem;margin-bottom:6px">{{ cat_icons.get(cat,'🛍️') }}</div>
+        <div class="small-muted" style="font-size:0.8rem;font-weight:500">{{ cat }}</div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- TRENDING -->
+{% if trending %}
+<div class="mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div><span class="section-label" style="color:var(--rose)">🔥 Trending</span><h2 class="mb-0">What's Hot Right Now</h2></div>
+    <a href="/search" class="btn btn-sm btn-outline-light">See all</a>
+  </div>
+  <div class="row g-3">
+    {% for p in trending %}
+    <div class="col-6 col-md-3">
+      <a href="/p/{{ p.id }}" class="text-decoration-none">
+        <div class="card prod-card p-0 overflow-hidden" style="border-color:rgba(244,114,182,0.2)">
+          <div style="position:relative">
+            <img src="{{ p.image_url or url_for('static',filename='placeholder.png') }}" alt="{{ p.title }}" class="prod-img" style="height:200px;border-radius:0" loading="lazy">
+            <span style="position:absolute;top:8px;left:8px;background:rgba(244,114,182,0.9);color:#fff;font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:999px">🔥 Trending</span>
+            {% if p.mrp and p.mrp > p.price %}<span style="position:absolute;top:8px;right:8px;background:var(--danger);color:#fff;font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:999px">{{ "%.0f"|format(((p.mrp-p.price)/p.mrp)*100) }}% OFF</span>{% endif %}
+          </div>
+          <div class="p-3">
+            <div class="small-muted" style="font-size:0.72rem;text-transform:uppercase">{{ p.category }}</div>
+            <div class="prod-title mt-1">{{ p.title[:50] }}{% if p.title|length>50 %}...{% endif %}</div>
+            <div class="d-flex align-items-baseline gap-2 mt-2">
+              <span class="prod-price">Rs.{{ "%.0f"|format(p.price) }}</span>
+              {% if p.mrp and p.mrp > p.price %}<span class="prod-mrp">Rs.{{ "%.0f"|format(p.mrp) }}</span>{% endif %}
+            </div>
+            {% if p.avg_rating %}<div class="rating-line mt-1"><span class="star" style="font-size:0.75rem">★</span> <span style="font-size:0.78rem">{{ "%.1f"|format(p.avg_rating) }}</span> <span class="small-muted" style="font-size:0.72rem">({{ p.review_count }})</span></div>{% endif %}
+          </div>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+
+
+<!-- RECENTLY VIEWED (shown from session) -->
+{% if recently_viewed_ids %}
+<div class="mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div><span class="section-label">Your History</span><h2 class="mb-0">Recently Viewed</h2></div>
+  </div>
+  <div class="d-flex gap-3 overflow-auto pb-2" style="scrollbar-width:none">
+    {% for p in products %}
+    {% if p.id in recently_viewed_ids %}
+    <a href="/p/{{ p.id }}" class="text-decoration-none" style="flex-shrink:0;width:140px">
+      <div class="card prod-card p-0 overflow-hidden">
+        <img src="{{ p.image_url or url_for('static',filename='placeholder.png') }}" class="prod-img" style="height:120px;border-radius:0;width:100%" loading="lazy" alt="{{ p.title }}">
+        <div class="p-2">
+          <div style="font-size:0.78rem;font-weight:500;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.title[:30] }}</div>
+          <span class="prod-price" style="font-size:0.88rem">₹{{ "%.0f"|format(p.price) }}</span>
+        </div>
+      </div>
+    </a>
+    {% endif %}
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+
+
+<!-- ALL PRODUCTS -->
+<div>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <div><span class="section-label">Explore</span><h2 class="mb-0">All Products</h2></div>
+    <a href="/search" class="btn btn-sm btn-outline-light">View All</a>
+  </div>
+  <div class="row g-3">
+    {% for p in products %}
+    <div class="col-6 col-md-3">
+      <a href="/p/{{ p.id }}" class="text-decoration-none">
+        <div class="card prod-card p-0 overflow-hidden">
+          <div style="position:relative">
+            <img src="{{ p.image_url or url_for('static',filename='placeholder.png') }}" alt="{{ p.title }}" class="prod-img" style="height:200px;border-radius:0" loading="lazy">
+            {% if p.mrp and p.mrp > p.price %}<span style="position:absolute;top:8px;left:8px;background:var(--danger);color:#fff;font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:999px">{{ "%.0f"|format(((p.mrp-p.price)/p.mrp)*100) }}% OFF</span>{% endif %}
+            {% if p.trending %}<span style="position:absolute;bottom:8px;left:8px;background:rgba(244,114,182,0.9);color:#fff;font-size:0.65rem;font-weight:700;padding:2px 6px;border-radius:999px">🔥</span>{% endif %}
+          </div>
+          <div class="p-3">
+            <div class="small-muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em">{{ p.category }}</div>
+            <div class="prod-title" style="margin-top:4px">{{ p.title[:50] }}{% if p.title|length>50 %}...{% endif %}</div>
+            <div class="d-flex align-items-baseline gap-2 mt-2">
+              <span class="prod-price">Rs.{{ "%.0f"|format(p.price) }}</span>
+              {% if p.mrp and p.mrp > p.price %}<span class="prod-mrp">Rs.{{ "%.0f"|format(p.mrp) }}</span>{% endif %}
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+    {% if not products %}<div class="col-12"><div class="empty"><p class="small-muted mb-0">No products available right now.</p></div></div>{% endif %}
+  </div>
+</div>
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.cat-pill').forEach(el => {
+  el.addEventListener('mouseenter', () => { el.style.borderColor='rgba(201,168,76,0.4)'; el.style.transform='translateY(-3px)'; });
+  el.addEventListener('mouseleave', () => { el.style.borderColor=''; el.style.transform=''; });
+});
+const cd = document.getElementById('flashCountdown');
+if (cd && cd.dataset.end) {
+  const end = new Date(cd.dataset.end.replace(' ','T'));
+  setInterval(() => {
+    const d = end - new Date();
+    if (d <= 0) { cd.textContent = 'Ended'; return; }
+    const h = Math.floor(d/3600000), m = Math.floor((d%3600000)/60000), s = Math.floor((d%60000)/1000);
+    cd.textContent = [h,m,s].map(n=>String(n).padStart(2,'0')).join(':');
+  }, 1000);
+}
+</script>
+{% endblock %}
+{% endblock %}

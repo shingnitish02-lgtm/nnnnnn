@@ -1,0 +1,196 @@
+{% extends "admin_layout.html" %}
+{% block admin %}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <div>
+    <span class="section-label">Finance</span>
+    <h1 class="mb-0">⚡ Auto Settlement</h1>
+    <p class="small-muted mb-1">Meesho-style {{ settlement_days }}-day auto payout cycle</p>
+  </div>
+  <div class="d-flex gap-2 flex-wrap">
+    <form method="post" action="/admin/payouts/run-settlement">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-sm btn-primary" onclick="return confirm('Settlement cycle run karein?')">⚡ Run Settlement</button>
+    </form>
+    {% if summary.count_due > 0 %}
+    <span class="small-muted align-self-center" style="font-size:0.78rem">
+      💸 {{ summary.count_due }} payouts due — Razorpay KYC pending hai, isliye filhal har payout neeche se manually mark karo.
+    </span>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Summary KPIs -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="kpi">
+      <div class="kpi-icon">🔒</div>
+      <div class="kpi-label">Earning (Locked)</div>
+      <div class="kpi-value" style="color:var(--muted)">₹{{ "%.0f"|format(summary.total_earned) }}</div>
+      <div class="kpi-sub">Return window mein</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi">
+      <div class="kpi-icon">🔴</div>
+      <div class="kpi-label">Settlement Due</div>
+      <div class="kpi-value" style="color:var(--rose)">₹{{ "%.0f"|format(summary.total_due) }}</div>
+      <div class="kpi-sub">{{ summary.count_due }} transactions</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi">
+      <div class="kpi-icon">✅</div>
+      <div class="kpi-label">Total Paid Out</div>
+      <div class="kpi-value" style="color:var(--success)">₹{{ "%.0f"|format(summary.total_paid) }}</div>
+      <div class="kpi-sub">Sellers ko transfer hua</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="kpi">
+      <div class="kpi-icon">🏦</div>
+      <div class="kpi-label">Platform Commission</div>
+      <div class="kpi-value" style="color:var(--gold2)">₹{{ "%.0f"|format(summary.total_commission) }}</div>
+      <div class="kpi-sub">Teri kamayi</div>
+    </div>
+  </div>
+</div>
+
+<!-- How it works info box -->
+<div class="card p-3 mb-4" style="border-left:3px solid var(--accent);background:rgba(139,92,246,0.07)">
+  <div class="fw-semibold mb-1">⚙️ Auto-Settlement Flow</div>
+  <div class="small-muted">
+    <b>Delivered</b> → 🔒 <b>Earning ({{ settlement_days }} din lock)</b> → 🔴 <b>Settlement Due</b>
+    → 💸 <b>Auto Razorpay Payout</b> (live mode mein) ya <b>Manual Pay</b> (test mode mein)
+    → ✅ <b>Paid</b>
+  </div>
+</div>
+
+<!-- Filter Tabs -->
+<div class="d-flex gap-2 mb-3 flex-wrap">
+  {% for label, val, icon in [('All', '', '📋'), ('Earning (Locked)', 'earned', '🔒'), ('Due', 'settlement_due', '🔴'), ('Paid', 'paid', '✅'), ('Pending', 'pending', '⏳')] %}
+  <a href="?status={{ val }}"
+     class="btn btn-sm {% if status_filter == val %}btn-primary{% else %}btn-outline-light{% endif %}">
+    {{ icon }} {{ label }}
+  </a>
+  {% endfor %}
+</div>
+
+<!-- Transactions Table -->
+<div class="card p-3">
+  {% if txns %}
+  <div class="table-responsive">
+    <table class="table align-middle" style="font-size:0.88rem">
+      <thead>
+        <tr>
+          <th>Seller</th>
+          <th>Order</th>
+          <th>Earned On</th>
+          <th>Settle By</th>
+          <th class="text-end">Sale</th>
+          <th class="text-end">Commission</th>
+          <th class="text-end">Net Payable</th>
+          <th>Mode</th>
+          <th>Status</th>
+          <th class="text-end">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for t in txns %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ t.seller_name }}</div>
+            <div style="font-size:0.76rem;color:var(--muted)">
+              {% if t.bank_account %}🏦 ••{{ t.bank_account[-4:] }} / {{ t.bank_ifsc or '—' }}
+              {% elif t.upi_id %}📱 {{ t.upi_id }}
+              {% else %}<span style="color:var(--rose)">⚠️ No bank details</span>{% endif %}
+            </div>
+          </td>
+          <td class="small-muted">{% if t.public_id %}#{{ t.public_id }}{% else %}—{% endif %}</td>
+          <td class="small-muted" style="font-size:0.8rem">{{ t.created_at.strftime('%d %b %Y') if t.created_at else '—' }}</td>
+          <td style="font-size:0.8rem">
+            {% if t.settlement_due_at %}
+              {% if t.status in ('earned',) %}
+                <span style="color:var(--gold2)">{{ t.settlement_due_at.strftime('%d %b') }}</span>
+              {% else %}
+                <span class="small-muted">{{ t.settlement_due_at.strftime('%d %b') }}</span>
+              {% endif %}
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-end">₹{{ "%.0f"|format(t.amount or 0) }}</td>
+          <td class="text-end" style="color:var(--rose)">-₹{{ "%.0f"|format(t.commission or 0) }}</td>
+          <td class="text-end fw-bold" style="color:var(--success)">₹{{ "%.0f"|format(t.net_amount or 0) }}</td>
+          <td style="font-size:0.78rem">
+            {% if t.payout_mode %}{{ t.payout_mode }}{% elif t.utr %}Manual{% else %}—{% endif %}
+            {% if t.utr %}<br><span class="small-muted">UTR: {{ t.utr }}</span>{% endif %}
+            {% if t.payout_id %}<br><span class="small-muted">{{ t.payout_id[:16] }}…</span>{% endif %}
+          </td>
+          <td>
+            {% if t.status == 'paid' %}
+              <span class="badge-soft" style="color:var(--success)">✅ Paid</span>
+            {% elif t.status == 'settlement_due' %}
+              <span class="badge-soft" style="color:var(--rose)">🔴 Due</span>
+            {% elif t.status == 'earned' %}
+              <span class="badge-soft" style="color:var(--gold2)">🔒 Locked</span>
+            {% elif t.status == 'payout_requested' %}
+              <span class="badge-soft" style="color:#60a5fa">📤 Requested</span>
+            {% else %}
+              <span class="badge-soft">{{ t.status }}</span>
+            {% endif %}
+            {% if t.payout_failure_reason %}
+              <div style="font-size:0.72rem;color:var(--rose)" title="{{ t.payout_failure_reason }}">⚠️ Failed</div>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            {% if t.status == 'settlement_due' %}
+            <div class="d-flex gap-1 justify-content-end flex-wrap">
+              <!-- Manual mark paid (Razorpay auto-payout temporarily disabled — KYC pending) -->
+              <button class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#manualModal{{ t.id }}">
+                ✍️ Manual
+              </button>
+            </div>
+
+            <!-- Manual Pay Modal -->
+            <div class="modal fade" id="manualModal{{ t.id }}" tabindex="-1">
+              <div class="modal-dialog modal-sm">
+                <div class="modal-content" style="background:var(--card);border:1px solid var(--border)">
+                  <div class="modal-header border-0">
+                    <h6 class="modal-title">Manual Payment — ₹{{ "%.0f"|format(t.net_amount) }}</h6>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                  </div>
+                  <form method="post" action="/admin/payouts/mark-paid/{{ t.id }}">
+                    <div class="modal-body pt-0">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <div class="mb-2">
+                        <label class="form-label small">UTR / Reference No. (optional)</label>
+                        <input type="text" name="utr" class="form-control form-control-sm" placeholder="e.g. 4123456789">
+                      </div>
+                      <div class="small-muted">
+                        Seller: <b>{{ t.seller_name }}</b><br>
+                        {% if t.bank_account %}A/C: {{ t.bank_account }} | IFSC: {{ t.bank_ifsc }}
+                        {% elif t.upi_id %}UPI: {{ t.upi_id }}{% endif %}
+                      </div>
+                    </div>
+                    <div class="modal-footer border-0">
+                      <button type="submit" class="btn btn-sm btn-primary w-100">✅ Mark Paid</button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            </div>
+            {% elif t.status == 'earned' %}
+              <span class="small-muted">{{ settlement_days }} din lock</span>
+            {% else %}
+              <span class="small-muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="alert alert-warning mb-0">Koi transactions nahi hain is filter mein.</div>
+  {% endif %}
+</div>
+{% endblock %}

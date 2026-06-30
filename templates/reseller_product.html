@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card p-3">
+      {% set main = (images[0].url if images and images|length>0 else (rc.image_url or url_for('static',filename='placeholder.png'))) %}
+      <img id="mainImg" class="prod-img" style="height:360px;border-radius:16px;object-fit:cover" src="{{ main }}" alt="{{ rc.title }}">
+      {% if images and images|length > 1 %}
+      <div class="thumb-row mt-3">
+        {% for im in images %}<img class="thumb {% if loop.first %}active{% endif %}" src="{{ im.thumb_url or im.url }}" data-full="{{ im.url }}" alt="">{% endfor %}
+      </div>
+      {% endif %}
+      <div class="d-flex gap-2 mt-3">
+        <a href="https://wa.me/?text={{ (rc.custom_title or rc.title)|urlencode }}%20-%20Rs.{{ (rc.base_price+rc.margin)|int }}%20-%20{{ request.url|urlencode }}" target="_blank" class="btn btn-sm btn-outline w-100" style="background:rgba(37,211,102,0.1);border-color:rgba(37,211,102,0.3);color:#25d366">📲 Share on WhatsApp</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-7">
+    <div class="card p-4 p-lg-5">
+      <a href="/search?category={{ rc.category }}" class="badge-soft text-decoration-none mb-2 d-inline-block" style="font-size:0.75rem">{{ rc.category }}</a>
+      <div class="small-muted mb-1" style="font-size:0.82rem">Sold by: <strong style="color:var(--accent)">{{ rc.shop_name }}</strong></div>
+      <h1 style="font-size:1.6rem">{{ rc.custom_title or rc.title }}</h1>
+      <div class="d-flex align-items-baseline gap-3 my-3">
+        <div class="prod-price" style="font-size:2rem">Rs.{{ "%.0f"|format(rc.base_price + rc.margin) }}</div>
+        {% if rc.mrp and rc.mrp > (rc.base_price + rc.margin) %}<div class="prod-mrp">Rs.{{ "%.0f"|format(rc.mrp) }}</div>{% endif %}
+      </div>
+      <div class="d-flex align-items-center gap-3 p-3 mb-4" style="border:1px solid rgba(52,211,153,0.2);border-radius:12px;background:rgba(52,211,153,0.04)">
+        <span style="font-size:1.4rem">🚚</span>
+        <div><div class="fw-semibold" style="font-size:0.9rem;color:var(--success)">Free delivery</div><div class="small-muted" style="font-size:0.8rem">3-5 business days</div></div>
+        <div class="ms-auto text-end"><div class="small-muted" style="font-size:0.8rem">7-day</div><div class="fw-semibold" style="font-size:0.82rem">Easy returns</div></div>
+      </div>
+      {% if session.get('role') == 'buyer' %}
+      <form method="post" action="/r/{{ rc.id }}/checkout">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button class="btn btn-primary w-100 py-2" style="font-size:1rem">🛒 Buy Now</button>
+      </form>
+      {% else %}
+      <a href="/login" class="btn btn-primary w-100 py-2" style="font-size:1rem">Login to Buy</a>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if reviews %}
+<div class="card p-4 mt-4">
+  <h2 class="mb-3">Customer Reviews</h2>
+  <div class="vstack gap-3">
+    {% for r in reviews %}
+    <div class="p-3" style="border:1px solid var(--border);border-radius:14px">
+      <div class="d-flex justify-content-between"><div class="fw-semibold">{{ r.buyer_name }}</div><div class="rating-line">{% for i in range(r.rating) %}<span class="star">★</span>{% endfor %}</div></div>
+      {% if r.body or r.comment %}<div class="small-muted mt-1">{{ r.body or r.comment }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('click',e=>{if(e.target&&e.target.classList.contains('thumb')){document.getElementById('mainImg').src=e.target.getAttribute('data-full');document.querySelectorAll('.thumb').forEach(t=>t.classList.remove('active'));e.target.classList.add('active');}});
+</script>
+{% endblock %}

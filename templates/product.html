@@ -1,0 +1,1094 @@
+{% extends "base.html" %}
+{% block page_title %}{{ p.title }} — Xoptime{% endblock %}
+{% block meta_desc %}{{ (p.description or p.title)[:160] }}{% endblock %}
+{% block og_type %}product{% endblock %}
+{% block og_title %}{{ p.title }}{% endblock %}
+{% block og_desc %}Rs.{{ "%.0f"|format(p.price) }} | {% if p.brand %}{{ p.brand }} | {% endif %}{{ p.category }} — Buy on Xoptime{% endblock %}
+{% block og_image %}{% if p.image_url %}{{ request.host_url.rstrip('/') }}{{ p.image_url }}{% else %}{{ request.host_url }}static/icon-512.png{% endif %}{% endblock %}
+{% block content %}
+
+<style>
+/* ── Meesho-style Product Page ─────────────────────────── */
+/* Mobile: break out of Bootstrap container padding completely */
+.prod-img-section {
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  margin-top: -1.5rem;
+  width: 100vw;
+  border-radius: 0;
+  overflow: hidden;
+  position: relative;
+  background: #f5f5f5;
+}
+@media (min-width: 992px) {
+  .prod-img-section {
+    margin: 0;
+    width: 100%;
+    border-radius: 14px;
+  }
+}
+.prod-slider-track {
+  display: flex;
+  transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform;
+  touch-action: pan-y; /* overridden to none once drag starts via JS */
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.prod-slider-track.dragging {
+  touch-action: none;
+  cursor: grabbing;
+}
+.prod-slide {
+  flex: 0 0 100%;
+  width: 100%;
+  min-width: 100%;
+  overflow: hidden;
+}
+.prod-main-img {
+  width: 100%;
+  aspect-ratio: 1/1;
+  object-fit: cover;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none; /* keeps drag clean, touch goes to track */
+  touch-action: none;
+  -webkit-touch-callout: none;
+}
+/* zoom on desktop click via overlay */
+.prod-slide-zoom-overlay {
+  position: absolute;
+  inset: 0;
+  cursor: zoom-in;
+}
+
+/* Nav arrows (desktop only) */
+.slider-arrow {
+  position: absolute;
+  top: 50%; transform: translateY(-50%);
+  z-index: 10;
+  width: 36px; height: 36px;
+  background: rgba(255,255,255,0.92);
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  font-size: 1rem; color: var(--text);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  transition: background .15s, opacity .15s;
+  opacity: 0;
+  pointer-events: none;
+}
+.prod-img-section:hover .slider-arrow { opacity: 1; pointer-events: auto; }
+.slider-arrow:hover { background: #fff; }
+.slider-arrow.left { left: 10px; }
+.slider-arrow.right { right: 10px; }
+@media (max-width: 991px) { .slider-arrow { display: none; } }
+
+.img-dots {
+  display: flex; justify-content: center; gap: 6px;
+  padding: 10px 0 8px;
+}
+.img-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--border); transition: all .25s ease;
+  cursor: pointer;
+}
+.img-dot.active { background: var(--accent); width: 18px; border-radius: 4px; }
+
+/* Similar strip */
+.similar-strip { padding: 10px 0 6px; border-bottom: 1px solid var(--border); }
+.similar-strip-title { font-size: 0.82rem; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+.similar-scroll { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.similar-scroll::-webkit-scrollbar { display: none; }
+.similar-card { flex-shrink: 0; width: 72px; cursor: pointer; text-decoration: none; }
+.similar-card img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; border: 2px solid var(--border); }
+.similar-card.active img { border-color: var(--accent); }
+.similar-card-label { font-size: 0.65rem; color: var(--muted); margin-top: 3px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.similar-card.active .similar-card-label { color: var(--accent); }
+
+/* Prod info */
+.prod-title { font-size: 1.05rem; font-weight: 500; color: var(--muted); line-height: 1.4; margin-bottom: 10px; }
+
+/* Price */
+.prod-price-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.prod-price-main { font-size: 1.85rem; font-weight: 700; color: var(--text); line-height: 1; }
+.prod-price-mrp { font-size: 1rem; color: var(--muted); text-decoration: line-through; }
+.prod-price-off { font-size: 0.88rem; color: #888; font-weight: 500; }
+
+/* UPI badge */
+.upi-offer-badge {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 8px; padding: 8px 12px; margin-bottom: 8px;
+  font-size: 0.85rem; font-weight: 600; color: var(--text);
+}
+.upi-icon {
+  width: 28px; height: 28px;
+  background: linear-gradient(135deg, #ff6b00, #00b140);
+  border-radius: 6px; display: flex; align-items: center; justify-content: center;
+  font-size: 0.6rem; font-weight: 800; color: #fff; flex-shrink: 0;
+}
+.cod-line { font-size: 0.82rem; color: var(--muted); margin-bottom: 12px; }
+.cod-line strong { color: var(--text); }
+
+/* Info rows */
+.info-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 0.85rem; }
+.info-row:last-child { border-bottom: none; }
+
+/* CTA bar */
+.prod-cta-bar {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0; right: 0;
+  z-index: 1060;
+  display: flex !important;
+  gap: 0;
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.1);
+  padding: 0;
+  background: var(--bg, #fff);
+}
+
+.btn-add-cart {
+  flex: 1; background: #fff; border: 2px solid var(--accent);
+  color: var(--accent); border-radius: 0; font-weight: 800;
+  font-size: 0.95rem; padding: 16px 8px;
+  display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+  font-family: inherit;
+}
+.btn-add-cart:active { background: rgba(var(--accent-rgb, 180,0,100), 0.08); }
+.btn-buy-now {
+  flex: 1; background: var(--accent); border: 2px solid var(--accent); color: #fff;
+  border-radius: 0; font-weight: 800; font-size: 0.95rem; padding: 16px 8px;
+  display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+  font-family: inherit;
+}
+.btn-buy-now:active { filter: brightness(0.88); }
+
+.prod-page-body { padding-bottom: 90px; }
+@media (min-width: 992px) { .prod-page-body { padding-bottom: 0; } }
+
+.prod-thumb-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.prod-thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 2px solid var(--border); cursor: pointer; }
+.prod-thumb.active { border-color: var(--accent); }
+
+.prod-section-card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-top: 12px; }
+</style>
+
+<div class="prod-page-body">
+<div class="row g-4">
+
+  <!-- LEFT: Images -->
+  <div class="col-lg-5">
+    <div style="position:sticky;top:90px">
+
+      {% set main = (images[0].url if images and images|length>0 else (p.image_url or url_for('static',filename='placeholder.png'))) %}
+
+      <div class="prod-img-section">
+        <!-- Slider track — all images side by side, CSS translateX scrolls them -->
+        <div class="prod-slider-track" id="sliderTrack">
+          {% if images and images|length > 0 %}
+            {% for im in images %}
+            <div class="prod-slide">
+              <img class="prod-main-img" src="{{ im.url }}" alt="{{ p.title }} view {{ loop.index }}" loading="{{ 'eager' if loop.first else 'lazy' }}">
+            </div>
+            {% endfor %}
+          {% else %}
+            <div class="prod-slide">
+              <img class="prod-main-img" src="{{ p.image_url or url_for('static',filename='placeholder.png') }}" alt="{{ p.title }}">
+            </div>
+          {% endif %}
+        </div>
+        <!-- Invisible zoom overlay (desktop click to zoom) -->
+        <div class="prod-slide-zoom-overlay" id="zoomOverlay"></div>
+        {% if p.is_flash_sale %}<div style="position:absolute;top:12px;left:12px;background:#ef4444;border-radius:20px;padding:3px 12px;font-size:0.72rem;color:#fff;font-weight:700;z-index:5">⚡ Flash Sale</div>{% endif %}
+        <!-- Desktop arrow buttons -->
+        {% if images and images|length > 1 %}
+        <button class="slider-arrow left" id="sliderPrev" aria-label="Previous">&#8249;</button>
+        <button class="slider-arrow right" id="sliderNext" aria-label="Next">&#8250;</button>
+        {% endif %}
+      </div>
+
+      <!-- Dots mobile -->
+      {% if images and images|length > 1 %}
+      <div class="img-dots d-lg-none">
+        {% for im in images %}<div class="img-dot {% if loop.first %}active{% endif %}" data-index="{{ loop.index0 }}"></div>{% endfor %}
+      </div>
+      <!-- Thumbs desktop -->
+      <div class="prod-thumb-row d-none d-lg-flex">
+        {% for im in images %}
+        <img class="prod-thumb {% if loop.first %}active{% endif %}" src="{{ im.thumb_url or im.url }}" data-index="{{ loop.index0 }}" alt="view {{ loop.index }}">
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Share (desktop) -->
+      <div class="d-none d-lg-flex gap-2 mt-3 align-items-center">
+        <span style="font-size:0.8rem;color:var(--muted)">Share:</span>
+        <a href="https://wa.me/?text={{ p.title|urlencode }}%20{{ request.url|urlencode }}" target="_blank" class="btn btn-sm" style="background:rgba(37,211,102,0.1);border:1px solid rgba(37,211,102,0.3);color:#25d366;border-radius:10px;font-size:0.8rem">📲 WhatsApp</a>
+        <button onclick="copyLink(this)" class="btn btn-sm btn-outline-light" style="border-radius:10px;font-size:0.8rem">🔗 Copy Link</button>
+      </div>
+
+      {% if session.get('is_reseller') %}
+      <div class="mt-3 p-3" style="border:1px solid rgba(167,139,250,0.3);border-radius:12px;background:rgba(167,139,250,0.05)">
+        <div style="font-size:0.8rem;font-weight:600;color:var(--accent);margin-bottom:8px">📦 Add to Reseller Catalog</div>
+        <form method="post" action="/reseller/catalog/add/{{ p.id }}" class="d-flex gap-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <input class="form-control input" type="number" name="margin" placeholder="Margin Rs." min="0" step="1" style="font-size:0.82rem">
+          <button class="btn btn-sm btn-primary" type="submit">+ Add</button>
+        </form>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- RIGHT: Product Info -->
+  <div class="col-lg-7">
+
+    <!-- Similar strip (mobile only) -->
+    {% if similar %}
+    <div class="similar-strip d-lg-none">
+      <div class="similar-strip-title">{{ similar|length + 1 }} Similar Products</div>
+      <div class="similar-scroll">
+        <div class="similar-card active">
+          <img src="{{ main }}" alt="this">
+          <div class="similar-card-label" style="color:var(--accent)">This</div>
+        </div>
+        {% for sp in similar[:6] %}
+        <a href="/p/{{ sp.id }}" class="similar-card">
+          <img src="{{ sp.image_url or url_for('static',filename='placeholder.png') }}" alt="{{ sp.title }}">
+          <div class="similar-card-label">{{ sp.title[:12] }}</div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Wishlist + Share (mobile top right) -->
+    <div class="d-flex justify-content-end gap-4 my-2 d-lg-none">
+      <form method="post" action="/wishlist/toggle/{{ p.id }}" style="display:inline">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" style="background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:var(--muted);font-size:0.68rem">
+          <span style="font-size:1.4rem">{% if wished %}♥{% else %}♡{% endif %}</span>Wishlist
+        </button>
+      </form>
+      <button onclick="if(navigator.share){navigator.share({title:'{{ p.title }}',url:window.location.href})}else{copyLink(this)}" style="background:none;border:none;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:var(--muted);font-size:0.68rem">
+        <span style="font-size:1.3rem">⎋</span>Share
+      </button>
+    </div>
+
+    <!-- Category + Stock -->
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <a href="/search?category={{ p.category }}" class="badge-soft text-decoration-none" style="font-size:0.7rem;text-transform:uppercase;letter-spacing:0.06em">{{ p.category }}</a>
+      <span class="{% if p.stock > 5 %}badge-success{% elif p.stock > 0 %}badge-warn{% else %}badge-danger{% endif %}">
+        {% if p.stock > 5 %}In Stock{% elif p.stock > 0 %}Only {{ p.stock }} left{% else %}Out of Stock{% endif %}
+      </span>
+    </div>
+
+    <!-- Title -->
+    <div class="prod-title">{{ p.title }}</div>
+    {% if p.brand %}<div class="small-muted mb-2" style="font-size:0.82rem">Brand: <span style="color:var(--gold2)">{{ p.brand }}</span></div>{% endif %}
+
+    <!-- Rating -->
+    <div class="d-flex align-items-center gap-2 mb-3" style="font-size:0.82rem">
+      <span class="star">★</span> {{ "%.1f"|format(p.avg_rating) }}
+      <span class="small-muted">({{ p.review_count }} reviews)</span>
+      <span class="small-muted">·</span>
+      <a href="/shop/{{ p.seller_id }}" style="color:var(--accent);font-size:0.8rem">{{ p.seller_name }}</a>
+    </div>
+
+    <!-- Price -->
+    <div class="prod-price-row">
+      {% if p.is_flash_sale and p.flash_sale_price %}
+      <div class="prod-price-main" id="priceDisplay" style="color:#f87171">₹{{ "%.0f"|format(p.flash_sale_price) }}</div>
+      <div class="prod-price-mrp">₹{{ "%.0f"|format(p.price) }}</div>
+      <div class="prod-price-off">⚡ {{ "%.0f"|format(((p.price-p.flash_sale_price)/p.price)*100) }}% off</div>
+      {% else %}
+      <div class="prod-price-main" id="priceDisplay">₹{{ "%.0f"|format(p.price) }}</div>
+      {% if p.mrp and p.mrp > p.price %}
+      <div class="prod-price-mrp">{{ "%.0f"|format(p.mrp) }}</div>
+      <div class="prod-price-off">{{ "%.0f"|format(((p.mrp-p.price)/p.mrp)*100) }}% off</div>
+      {% endif %}
+      {% endif %}
+    </div>
+
+    <!-- UPI offer -->
+    <div class="upi-offer-badge">
+      <div class="upi-icon">UPI</div>
+      <span>UPI Offer applied for you!</span>
+    </div>
+
+    <!-- COD -->
+    {% if p.mrp and p.mrp > p.price %}
+    <div class="cod-line"><strong>₹{{ "%.0f"|format(p.mrp) }}</strong> with COD</div>
+    {% endif %}
+
+    <!-- Urgency -->
+    {% if p.stock > 0 and p.stock <= 10 %}
+    <div class="urgency-bar urgency-hot mb-3">🔥 Sirf {{ p.stock }} bacha hai — jaldi karo!</div>
+    {% endif %}
+
+    <!-- Description -->
+    {% if p.description %}
+    <p class="small-muted mb-3" style="line-height:1.7;font-size:0.85rem">{{ p.description }}</p>
+    {% endif %}
+
+    <!-- Product Details -->
+    {% set has_details = p.material or p.pattern or p.occasion or p.generic_name or p.country_of_origin or p.net_quantity or p.product_type or p.style_code or p.weight_grams %}
+    {% if has_details %}
+    <div class="mb-3" style="background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+      <div class="fw-semibold px-3 py-2" style="font-size:0.82rem;color:var(--muted);border-bottom:1px solid var(--border);background:rgba(255,255,255,0.02);letter-spacing:.04em;text-transform:uppercase">Product Details</div>
+      <div class="px-3 py-2">
+        <table style="width:100%;border-collapse:collapse;font-size:0.83rem">
+          {% if p.generic_name %}
+          <tr style="border-bottom:1px solid var(--border2)">
+            <td style="padding:6px 0;color:var(--muted);width:42%">Type</td>
+            <td style="padding:6px 0;color:var(--text);font-weight:500">{{ p.generic_name }}</td>
+          </tr>
+          {% endif %}
+          {% if p.material %}
+          <tr style="border-bottom:1px solid var(--border2)">
+            <td style="padding:6px 0;color:var(--muted)">Material</td>
+            <td style="padding:6px 0;color:var(--text);font-weight:500">{{ p.material }}</td>
+          </tr>
+          {% endif %}
+          {% if p.pattern %}
+          <tr style="border-bottom:1px solid var(--border2)">
+            <td style="padding:6px 0;color:var(--muted)">Pattern</td>
+            <td style="padding:6px 0;color:var(--text);font-weight:500">{{ p.pattern }}</td>
+          </tr>
+          {% endif %}
+          {% if p.occasion %}
+          <tr style="border-bottom:1px solid var(--border2)">
+            <td style="padding:6px 0;color:var(--muted)">Occasion</td>
+            <td style="padding:6px 0;color:var(--text);font-weight:500">{{ p.occasion }}</td>
+          </tr>
+          {% endif %}
+          {% if p.product_type %}
+          <tr style="border-bottom:1px solid var(--border2)">
+            <td style="padding:6px 0;color:var(--muted)">Product Type</td>
+            <td style="padding:6px 0;color:var(--text);font-weight:500">{{ p.product_type }}</td>
+          </tr>
+          {% endif %}
+          {% if p.net_quantity %}
+          <tr style="border-bottom:1px solid var(--border2)">
+            <td style="padding:6px 0;color:var(--muted)">Net Quantity</td>
+            <td style="padding:6px 0;color:var(--text);font-weight:500">{{ p.net_quantity }}</td>
+          </tr>
+          {% endif %}
+          {% if p.weight_grams %}
+          <tr style="border-bottom:1px solid var(--border2)">
+            <td style="padding:6px 0;color:var(--muted)">Weight</td>
+            <td style="padding:6px 0;color:var(--text);font-weight:500">{{ p.weight_grams|int }}g</td>
+          </tr>
+          {% endif %}
+          {% if p.style_code %}
+          <tr style="border-bottom:1px solid var(--border2)">
+            <td style="padding:6px 0;color:var(--muted)">Style Code</td>
+            <td style="padding:6px 0;color:var(--text);font-weight:500">{{ p.style_code }}</td>
+          </tr>
+          {% endif %}
+          {% if p.country_of_origin %}
+          <tr>
+            <td style="padding:6px 0;color:var(--muted)">Country of Origin</td>
+            <td style="padding:6px 0;color:var(--text);font-weight:500">{{ p.country_of_origin }}</td>
+          </tr>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Size / Color / Variants -->
+    {% if session.get('role') == 'buyer' %}
+    <form method="post" action="/cart/add/{{ p.id }}" id="cartForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      {% if variants and variants|length > 0 %}
+      <div class="mb-3">
+        <label class="form-label">Select Variant</label>
+        <select id="variantSelect" class="form-select" name="variant_id">
+          <option value="">-- Choose --</option>
+          {% for v in variants %}
+          <option value="{{ v.id }}" data-price="{{ v.price }}" data-stock="{{ v.stock }}">
+            {% if v.size %}{{ v.size }}{% endif %}{% if v.color %} / {{ v.color }}{% endif %} — ₹{{ "%.0f"|format(v.price) }} · Stock: {{ v.stock }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      {% endif %}
+
+      {% set sizes  = (p.size_options.split(',')  if p.size_options  else []) %}
+      {% set colors = (p.color_options.split(',') if p.color_options else []) %}
+
+      {% if sizes %}
+      <div class="mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <label class="form-label mb-0" style="font-weight:600;font-size:0.88rem">Size <span id="sizeReqBadge" style="font-size:0.7rem;color:var(--rose);display:none">* Required</span></label>
+          <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#sizeModal" style="font-size:0.72rem;padding:2px 8px;border-radius:8px">📏 Size Chart</button>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+          {% for s in sizes %}{% set s2=s.strip() %}{% if s2 %}
+          <input type="radio" class="btn-check" name="size" id="sz_{{ loop.index }}" value="{{ s2 }}">
+          <label class="btn btn-sm btn-outline-light" for="sz_{{ loop.index }}" style="border-radius:8px;min-width:42px">{{ s2 }}</label>
+          {% endif %}{% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      {% if colors %}
+      <div class="mb-3">
+        <label class="form-label" style="font-weight:600;font-size:0.88rem">Color <span id="colorReqBadge" style="font-size:0.7rem;color:var(--rose);display:none">* Required</span></label>
+        <div class="d-flex flex-wrap gap-2">
+          {% for c in colors %}{% set c2=c.strip() %}{% if c2 %}
+          <input type="radio" class="btn-check" name="color" id="cl_{{ loop.index }}" value="{{ c2 }}">
+          <label class="btn btn-sm btn-outline-light" for="cl_{{ loop.index }}" style="border-radius:8px">{{ c2 }}</label>
+          {% endif %}{% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="d-none d-lg-flex align-items-center gap-2 mb-3">
+        <label class="form-label mb-0" style="font-size:0.88rem">Qty:</label>
+        <input class="form-control" type="number" name="qty" id="qtyInput" min="1" max="{{ p.stock }}" value="1" style="width:80px">
+      </div>
+      <input type="hidden" name="qty" value="1" class="d-lg-none">
+
+      <!-- Desktop buttons only — mobile uses fixed bottom bar -->
+      <div class="d-none d-lg-flex gap-2 mt-2" id="inline-cart-btns">
+        <button class="btn-add-cart" type="submit" {% if p.stock==0 %}disabled{% endif %}>
+          🛒 {% if p.stock > 0 %}Add to Cart{% else %}Out of Stock{% endif %}
+        </button>
+        {% if p.stock > 0 %}
+        <button type="button" class="btn-buy-now" onclick="submitBuyNow()">▶▶ Buy Now</button>
+        {% endif %}
+      </div>
+
+      <!-- Mobile inline buttons — visible initially, sticky bar appears when these scroll out -->
+      <div class="d-flex d-lg-none gap-2 mt-2" id="mobile-inline-btns">
+        <button class="btn-add-cart" type="submit" {% if p.stock==0 %}disabled{% endif %} style="flex:1;">
+          🛒 {% if p.stock > 0 %}Add to Cart{% else %}Out of Stock{% endif %}
+        </button>
+        {% if p.stock > 0 %}
+        <button type="button" class="btn-buy-now" onclick="submitBuyNow()" style="flex:1;">▶▶ Buy Now</button>
+        {% endif %}
+      </div>
+    </form>
+
+    {% if p.stock > 0 %}
+    <form method="post" action="/buy-now/{{ p.id }}" id="buyNowForm" style="display:none">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="qty" id="buyNowQty" value="1">
+      <input type="hidden" name="size" id="buyNowSize" value="">
+      <input type="hidden" name="color" id="buyNowColor" value="">
+    </form>
+    {% endif %}
+
+    {% if seller_on_vacation %}
+    <div class="p-3 mt-2" style="background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);border-radius:12px">
+      <div class="fw-semibold" style="color:#fbbf24;font-size:0.9rem">🏖️ Seller abhi vacation pe hai</div>
+      <div class="small-muted" style="font-size:0.82rem">Orders temporarily paused. Wishlist mein save karo!</div>
+    </div>
+    {% endif %}
+
+    <form method="post" action="/wishlist/toggle/{{ p.id }}" class="mt-2 d-none d-lg-block">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-outline w-100" type="submit">{% if wished %}♥ Wishlisted{% else %}♡ Add to Wishlist{% endif %}</button>
+    </form>
+    {% else %}
+    <div class="mt-3"><p class="small-muted text-center">Please <a href="/login">login as buyer</a> to purchase.</p></div>
+    {% endif %}
+
+    <!-- Info rows -->
+    <div class="mt-3" style="border:1px solid var(--border);border-radius:14px;padding:0 12px">
+      <div class="info-row">
+        <span style="font-size:1.1rem">🚚</span>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:0.85rem;color:var(--success)">Free Delivery</div>
+          <div class="small-muted" style="font-size:0.78rem">3–5 business days</div>
+        </div>
+        <div style="text-align:right">
+          <div class="small-muted" style="font-size:0.78rem">7-day</div>
+          <div style="font-weight:600;font-size:0.82rem">Easy Returns</div>
+        </div>
+      </div>
+      <div class="info-row">
+        <span style="font-size:1.1rem">📍</span>
+        <div style="flex:1">
+          <div style="font-weight:600;font-size:0.85rem">Check Delivery</div>
+          <div class="d-flex gap-2 mt-1">
+            <input class="form-control input" id="pincodeInput" placeholder="6-digit pincode" maxlength="6" style="font-size:0.82rem;height:34px">
+            <button onclick="checkPincode()" class="btn btn-sm btn-outline-light" style="white-space:nowrap">Check</button>
+          </div>
+          <div id="pincodeResult" style="font-size:0.8rem;display:none;margin-top:4px"></div>
+        </div>
+      </div>
+      <div class="info-row">
+        <span style="font-size:1.1rem">🏷️</span>
+        <div>
+          <div style="font-weight:600;font-size:0.85rem">Sold by</div>
+          <div class="small-muted" style="font-size:0.8rem"><a href="/shop/{{ p.seller_id }}" style="color:var(--accent)">{{ p.seller_name }}</a></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Similar (desktop) -->
+    {% if similar %}
+    <div class="d-none d-lg-block mt-4">
+      <div class="similar-strip-title">{{ similar|length + 1 }} Similar Products</div>
+      <div class="similar-scroll" style="padding-bottom:6px">
+        <div class="similar-card active">
+          <img src="{{ main }}" alt="current" style="border-color:var(--accent)">
+          <div class="similar-card-label" style="color:var(--accent)">This</div>
+        </div>
+        {% for sp in similar[:6] %}
+        <a href="/p/{{ sp.id }}" class="similar-card">
+          <img src="{{ sp.image_url or url_for('static',filename='placeholder.png') }}" alt="{{ sp.title }}">
+          <div class="similar-card-label">{{ sp.title[:12] }}</div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if session.get('is_reseller') %}
+    <div class="mt-3 p-3 d-lg-none" style="border:1px solid rgba(167,139,250,0.3);border-radius:12px;background:rgba(167,139,250,0.05)">
+      <div style="font-size:0.8rem;font-weight:600;color:var(--accent);margin-bottom:8px">📦 Add to Reseller Catalog</div>
+      <form method="post" action="/reseller/catalog/add/{{ p.id }}" class="d-flex gap-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input class="form-control input" type="number" name="margin" placeholder="Margin Rs." min="0" step="1" style="font-size:0.82rem">
+        <button class="btn btn-sm btn-primary" type="submit">+ Add</button>
+      </form>
+    </div>
+    {% endif %}
+
+  </div><!-- /col -->
+</div><!-- /row -->
+
+<!-- REVIEWS - Meesho Style -->
+<div class="prod-section-card mt-4" style="padding:0;overflow:hidden;border-radius:16px" id="reviews-section">
+
+  <!-- Header -->
+  <div class="d-flex justify-content-between align-items-center px-3 pt-3 pb-2">
+    <h2 class="mb-0 fw-bold" style="font-size:1rem;color:var(--fg)">Customer Ratings &amp; Reviews</h2>
+    {% if p.review_count > 0 %}
+    <a href="/product/{{ p.id }}/reviews" style="color:#7c3aed;font-size:0.82rem;font-weight:700;text-decoration:none;display:flex;align-items:center;gap:4px">
+      VIEW ALL <span style="background:#7c3aed;color:#fff;border-radius:50%;width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;font-size:0.7rem">›</span>
+    </a>
+    {% endif %}
+  </div>
+
+  {% if p.review_count > 0 %}
+  <!-- Rating Summary Box -->
+  <div class="d-flex align-items-center gap-3 px-3 pb-3">
+    <!-- Big Score -->
+    <div style="background:#1a7a4a;border-radius:14px;padding:14px 18px;text-align:center;min-width:100px;flex-shrink:0">
+      <div style="color:#fff;font-size:2rem;font-weight:800;line-height:1">{{ "%.1f"|format(p.avg_rating) }} <span style="font-size:1.2rem">★</span></div>
+      <div style="color:rgba(255,255,255,0.85);font-size:0.72rem;margin-top:4px">{{ p.review_count }} Ratings<br>{% if reviews %}{{ reviews|length }} Reviews{% endif %}</div>
+    </div>
+
+    <!-- Rating Bars -->
+    <div style="flex:1">
+      {% set labels = {5:'Very Good', 4:'Good', 3:'Ok-Ok', 2:'Bad', 1:'Very Bad'} %}
+      {% set bar_colors = {5:'#1a7a4a', 4:'#4caf50', 3:'#ffc107', 2:'#ff9800', 1:'#f44336'} %}
+      {% for star in [5,4,3,2,1] %}
+        {% set cnt = rating_counts.get(star, 0) %}
+        {% set pct = ((cnt / p.review_count) * 100)|int if p.review_count > 0 else 0 %}
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+        <span style="font-size:0.75rem;color:var(--muted);min-width:54px;white-space:nowrap">{{ labels[star] }}</span>
+        <div style="flex:1;height:5px;background:#e0e0e0;border-radius:99px;overflow:hidden">
+          <div style="height:100%;width:{{ pct }}%;background:{{ bar_colors[star] }};border-radius:99px"></div>
+        </div>
+        <span style="font-size:0.75rem;color:var(--muted);min-width:14px;text-align:right">{{ cnt }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Positive Tags (auto-generated from reviews) -->
+  {% if reviews %}
+  {% set good_count = rating_counts.get(5,0) + rating_counts.get(4,0) %}
+  {% if good_count > 0 %}
+  <div class="px-3 pb-3 d-flex flex-wrap gap-2">
+    <span style="background:#e8f5e9;color:#1a7a4a;border:1px solid #a5d6a7;border-radius:999px;padding:5px 12px;font-size:0.78rem;display:flex;align-items:center;gap:5px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="#1a7a4a"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Good Quality
+    </span>
+    {% if good_count >= 2 %}
+    <span style="background:#e8f5e9;color:#1a7a4a;border:1px solid #a5d6a7;border-radius:999px;padding:5px 12px;font-size:0.78rem;display:flex;align-items:center;gap:5px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="#1a7a4a"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg> Value for Money
+    </span>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <div style="height:1px;background:var(--border);margin:0 0 4px 0"></div>
+
+  <!-- Individual Reviews -->
+  {% if reviews and reviews|length > 0 %}
+  <div>
+    {% for r in reviews[:3] %}
+    <div class="px-3 py-3" style="{% if not loop.last %}border-bottom:1px solid var(--border){% endif %}">
+      <!-- Star Badge + Label + Date -->
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span style="background:{% if r.rating >= 4 %}#1a7a4a{% elif r.rating == 3 %}#ffc107{% else %}#f44336{% endif %};color:#fff;border-radius:999px;padding:3px 9px;font-size:0.78rem;font-weight:700;display:flex;align-items:center;gap:3px">
+          {{ r.rating }} ★
+        </span>
+        <span style="font-weight:700;font-size:0.85rem;color:var(--fg)">{% if r.rating == 5 %}Very Good{% elif r.rating == 4 %}Good{% elif r.rating == 3 %}Ok-Ok{% elif r.rating == 2 %}Bad{% else %}Very Bad{% endif %}</span>
+        <span style="color:var(--muted);font-size:0.75rem">·
+          {% if r.created_at %}
+            {% set diff = (now - r.created_at).days if r.created_at else 0 %}
+            {% if diff == 0 %}Today
+            {% elif diff == 1 %}Yesterday
+            {% elif diff < 7 %}{{ diff }} days ago
+            {% else %}{{ r.created_at.strftime('%d %b %Y') }}
+            {% endif %}
+          {% endif %}
+        </span>
+      </div>
+
+      <!-- Review Text -->
+      {% if r.body or r.comment %}
+      <div style="font-size:0.88rem;color:var(--fg);margin-bottom:6px">{{ r.body or r.comment }}</div>
+      {% endif %}
+
+      <!-- Reviewer Name + Helpful -->
+      <div class="d-flex justify-content-between align-items-center mt-1">
+        <span style="font-size:0.78rem;color:var(--muted)">~{{ r.buyer_name or r['name'] or 'Buyer' }}</span>
+        <button onclick="markHelpful(this, {{ r.id }})" style="background:none;border:none;color:var(--muted);font-size:0.78rem;display:flex;align-items:center;gap:4px;cursor:pointer;padding:0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg>
+          Helpful
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <!-- No reviews yet -->
+  <div class="px-3 pb-3 text-center" style="color:var(--muted);font-size:0.88rem;padding-top:8px">
+    <div style="font-size:2rem;margin-bottom:6px">💬</div>
+    No reviews yet. Be the first to review!
+  </div>
+  {% endif %}
+
+
+
+</div>
+
+<script>
+function selectStar(val) {
+  document.getElementById('rating-val').value = val;
+  document.querySelectorAll('.tap-star').forEach(function(s) {
+    s.style.color = parseInt(s.dataset.val) <= val ? '#ffc107' : '#e0e0e0';
+  });
+}
+function markHelpful(btn, reviewId) {
+  btn.style.color = '#7c3aed';
+  btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="#7c3aed"><path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3H14z"/><path d="M7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3"/></svg> Helpful ✓';
+  btn.disabled = true;
+  fetch('/review/' + reviewId + '/helpful', {method:'POST', headers:{'X-CSRFToken': document.querySelector('[name=csrf_token]') ? document.querySelector('[name=csrf_token]').value : ''}});
+}
+</script>
+
+
+
+<!-- Recently Viewed -->
+{% if recently_viewed %}
+<div class="prod-section-card mt-3 mb-4">
+  <div class="mb-3"><span class="section-label">Your History</span><h2 class="mb-0" style="font-size:1.1rem">Recently Viewed</h2></div>
+  <div class="row g-3">
+    {% for rp in recently_viewed %}
+    <div class="col-6 col-md-2">
+      <a href="/p/{{ rp.id }}" class="text-decoration-none">
+        <div class="card prod-card p-0 overflow-hidden">
+          <img src="{{ rp.image_url or url_for('static',filename='placeholder.png') }}" style="height:100px;object-fit:cover;width:100%;border-radius:0" alt="{{ rp.title }}">
+          <div class="p-2">
+            <div style="font-size:0.75rem;font-weight:600;line-height:1.2">{{ rp.title[:28] }}{% if rp.title|length>28 %}…{% endif %}</div>
+            <div class="prod-price" style="font-size:0.85rem">₹{{ "%.0f"|format(rp.price) }}</div>
+          </div>
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+</div><!-- /prod-page-body -->
+
+<!-- SIZE CHART MODAL -->
+<div class="modal fade" id="sizeModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content" style="background:var(--bg2);border:1px solid var(--border2)">
+      <div class="modal-header" style="border-color:var(--border)">
+        <h5 class="modal-title">📏 Size Chart</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        {% if p.size_chart_data %}
+          <div id="scRendered"></div>
+          <p class="small-muted mt-3" style="font-size:0.78rem">📐 Measurements in inches unless stated.</p>
+        {% else %}
+          <div style="overflow-x:auto">
+            <table class="table table-sm" style="font-size:0.84rem">
+              <thead style="background:rgba(255,255,255,0.04)">
+                <tr><th>Size</th><th>Chest (in)</th><th>Waist (in)</th><th>Hip (in)</th><th>Length (in)</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>XS</td><td>34</td><td>28</td><td>36</td><td>27</td></tr>
+                <tr><td>S</td><td>36</td><td>30</td><td>38</td><td>27.5</td></tr>
+                <tr><td>M</td><td>38</td><td>32</td><td>40</td><td>28</td></tr>
+                <tr><td>L</td><td>40</td><td>34</td><td>42</td><td>28.5</td></tr>
+                <tr><td>XL</td><td>42</td><td>36</td><td>44</td><td>29</td></tr>
+                <tr><td>XXL</td><td>44</td><td>38</td><td>46</td><td>29.5</td></tr>
+              </tbody>
+            </table>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CTA bar moved to base.html -->
+
+<!-- Zoom Modal -->
+<div id="zoomModal" onclick="closeZoom()" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);cursor:zoom-out;align-items:center;justify-content:center">
+  <img id="zoomImg" style="max-width:95vw;max-height:92vh;border-radius:12px;object-fit:contain" src="" alt="zoom">
+  <button onclick="closeZoom()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:50%;width:40px;height:40px;font-size:1.2rem;cursor:pointer">✕</button>
+</div>
+
+{% if similar %}
+<!-- PEOPLE ALSO VIEWED -->
+<div class="mt-4 mb-5">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="fw-bold mb-0" style="font-size:1rem">People Also Viewed</h2>
+    <a href="/search?q={{ p.category }}" style="color:#7c3aed;font-size:0.8rem;font-weight:700;text-decoration:none">View All ›</a>
+  </div>
+  <div class="row g-2">
+    {% for sp in similar %}
+    <div class="col-6">
+      <a href="/p/{{ sp.id }}" class="text-decoration-none d-block" style="border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--surface)">
+        <div style="position:relative">
+          <img src="{{ sp.image_url or url_for('static', filename='placeholder.png') }}"
+               style="width:100%;aspect-ratio:1;object-fit:cover" alt="{{ sp.title }}" loading="lazy">
+          {% if sp.mrp and sp.mrp > sp.price %}
+          <span style="position:absolute;top:8px;left:8px;background:#e53935;color:#fff;font-size:0.68rem;font-weight:700;padding:2px 7px;border-radius:999px">
+            {{ ((sp.mrp - sp.price) / sp.mrp * 100)|int }}% off
+          </span>
+          {% endif %}
+        </div>
+        <div class="p-2">
+          <div style="font-size:0.8rem;font-weight:600;color:var(--fg);line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">{{ sp.title }}</div>
+          <div class="d-flex align-items-center gap-1 mt-1">
+            <span style="font-size:0.95rem;font-weight:800;color:var(--fg)">₹{{ "%.0f"|format(sp.price) }}</span>
+            {% if sp.mrp and sp.mrp > sp.price %}
+            <span style="font-size:0.72rem;color:var(--muted);text-decoration:line-through">₹{{ "%.0f"|format(sp.mrp) }}</span>
+            {% endif %}
+          </div>
+          {% if sp.avg_rating is defined and sp.avg_rating %}
+          <div style="font-size:0.72rem;color:var(--muted);margin-top:2px">
+            <span style="color:#f59e0b">★</span> {{ "%.1f"|format(sp.avg_rating) }}
+          </div>
+          {% endif %}
+        </div>
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
+{% block scripts %}
+<script>
+function openZoom(src){const m=document.getElementById('zoomModal');if(!src){const slides=document.querySelectorAll('.prod-slide img');const cur=Math.round(-parseFloat((document.getElementById('sliderTrack')?.style.transform||'translateX(0)').replace(/[^-\d.]/g,''))/100);src=(slides[cur]||slides[0])?.src;}document.getElementById('zoomImg').src=src;m.style.display='flex';document.body.style.overflow='hidden';}
+function closeZoom(){document.getElementById('zoomModal').style.display='none';document.body.style.overflow='';}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeZoom();});
+
+// ── Smooth Image Slider ───────────────────────────────────
+(function(){
+  const track = document.getElementById('sliderTrack');
+  if (!track) return;
+
+  {% if images and images|length > 1 %}
+  const imgs = [{% for im in images %}"{{ im.url }}"{% if not loop.last %},{% endif %}{% endfor %}];
+  {% else %}
+  const imgs = ["{{ main }}"];
+  {% endif %}
+
+  const total = imgs.length;
+  if (total <= 1) return;
+
+  let cur = 0;
+  let startX = 0, startY = 0, dragX = 0, isDragging = false, didDrag = false;
+
+  const dots  = document.querySelectorAll('.img-dot');
+  const thumbs = document.querySelectorAll('.prod-thumb');
+  const prevBtn = document.getElementById('sliderPrev');
+  const nextBtn = document.getElementById('sliderNext');
+  const overlay = document.getElementById('zoomOverlay');
+
+  function updateSlider(animate) {
+    if (!animate) track.style.transition = 'none';
+    track.style.transform = `translateX(-${cur * 100}%)`;
+    if (!animate) void track.offsetWidth; // force reflow
+    if (!animate) track.style.transition = '';
+
+    dots.forEach((d, i) => d.classList.toggle('active', i === cur));
+    thumbs.forEach((t, i) => t.classList.toggle('active', i === cur));
+  }
+
+  function goTo(i) {
+    cur = ((i % total) + total) % total;
+    updateSlider(true);
+  }
+
+  // Arrow buttons (desktop)
+  if (prevBtn) prevBtn.addEventListener('click', () => goTo(cur - 1));
+  if (nextBtn) nextBtn.addEventListener('click', () => goTo(cur + 1));
+
+  // Dot clicks
+  dots.forEach((d, i) => d.addEventListener('click', () => goTo(i)));
+
+  // Zoom overlay (desktop) — zoom current image on click
+  if (overlay) {
+    overlay.addEventListener('click', () => {
+      if (!didDrag) openZoom(imgs[cur]);
+    });
+  }
+
+  // Touch / mouse drag — robust, axis-locked swipe
+  let lockAxis = null; // 'h' horizontal | 'v' vertical
+
+  function onDragStart(x, y) {
+    startX = x; startY = y; dragX = 0;
+    isDragging = true; didDrag = false;
+    lockAxis = null;
+    track.style.transition = 'none';
+  }
+  function onDragMove(x, y) {
+    if (!isDragging) return;
+    const dx = x - startX;
+    const dy = y - startY;
+
+    if (!lockAxis) {
+      if (Math.abs(dx) > 6 || Math.abs(dy) > 6) {
+        lockAxis = Math.abs(dx) >= Math.abs(dy) ? 'h' : 'v';
+      }
+      if (!lockAxis) return;
+    }
+
+    if (lockAxis === 'v') {
+      isDragging = false;
+      track.classList.remove('dragging');
+      track.style.transition = '';
+      return;
+    }
+
+    didDrag = true;
+    track.classList.add('dragging');
+    dragX = dx;
+
+    let trackW = track.offsetWidth || window.innerWidth;
+    let offset = -cur * 100 + (dx / trackW * 100);
+    if (cur === 0 && dx > 0) offset = dx / trackW * 28;
+    if (cur === total - 1 && dx < 0) offset = -cur * 100 + (dx / trackW * 28);
+    track.style.transform = `translateX(${offset}%)`;
+  }
+  function onDragEnd(x) {
+    if (!isDragging) return;
+    isDragging = false;
+    lockAxis = null;
+    track.classList.remove('dragging');
+    track.style.transition = 'transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94)';
+    const diff = startX - x;
+    if (Math.abs(diff) > 45) {
+      goTo(diff > 0 ? cur + 1 : cur - 1);
+    } else {
+      updateSlider(true);
+    }
+  }
+
+  // Touch events
+  track.addEventListener('touchstart', e => {
+    onDragStart(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+  track.addEventListener('touchmove', e => {
+    if (!isDragging) return;
+    const dx = Math.abs(e.touches[0].clientX - startX);
+    const dy = Math.abs(e.touches[0].clientY - startY);
+    if (lockAxis === 'h' || (dx > dy && dx > 6)) e.preventDefault();
+    onDragMove(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: false });
+  track.addEventListener('touchend', e => onDragEnd(e.changedTouches[0].clientX));
+
+  // Mouse drag (desktop)
+  track.addEventListener('mousedown', e => { onDragStart(e.clientX, e.clientY); e.preventDefault(); });
+  document.addEventListener('mousemove', e => { if (isDragging) onDragMove(e.clientX, e.clientY); });
+  document.addEventListener('mouseup',   e => { if (isDragging) onDragEnd(e.clientX); });
+
+  // Keyboard
+  document.addEventListener('keydown', e => {
+    if (document.getElementById('zoomModal')?.style.display === 'flex') return;
+    if (e.key === 'ArrowLeft')  goTo(cur - 1);
+    if (e.key === 'ArrowRight') goTo(cur + 1);
+  });
+})();
+
+// Desktop thumbs → slider sync
+document.addEventListener('click', e => {
+  const thumb = e.target.closest('.prod-thumb');
+  if (!thumb) return;
+  const idx = parseInt(thumb.getAttribute('data-index') || '0', 10);
+  document.querySelectorAll('.img-dot')[idx]?.click();
+  document.querySelectorAll('.prod-thumb').forEach((t,i) => t.classList.toggle('active', i === idx));
+});
+
+// Variant price
+(function(){
+  const sel=document.getElementById('variantSelect');
+  if(!sel)return;
+  const qty=document.getElementById('qtyInput');
+  const priceEl=document.getElementById('priceDisplay');
+  sel.addEventListener('change',function(){
+    const opt=sel.options[sel.selectedIndex];
+    const pr=opt.getAttribute('data-price');
+    const st=opt.getAttribute('data-stock');
+    if(pr&&priceEl)priceEl.textContent='₹'+parseInt(parseFloat(pr));
+    if(st&&qty){qty.max=st;if(parseInt(qty.value||'1')>parseInt(st))qty.value=st;}
+  });
+})();
+
+document.addEventListener('change',e=>{
+  const bnQty=document.getElementById('buyNowQty');
+  const bnSize=document.getElementById('buyNowSize');
+  const bnColor=document.getElementById('buyNowColor');
+  if(e.target.name==='qty'&&bnQty)bnQty.value=e.target.value;
+  if(e.target.name==='size'&&bnSize)bnSize.value=e.target.value;
+  if(e.target.name==='color'&&bnColor)bnColor.value=e.target.value;
+});
+
+// ── Size/Color Required Validation ──────────────────────────
+const cartFormEl = document.getElementById('cartForm');
+if (cartFormEl) {
+  cartFormEl.addEventListener('submit', function(e) {
+    const sizes = cartFormEl.querySelectorAll('[name=size]');
+    const colors = cartFormEl.querySelectorAll('[name=color]');
+    const sizeReqBadge = document.getElementById('sizeReqBadge');
+    const colorReqBadge = document.getElementById('colorReqBadge');
+    let valid = true;
+    if (sizes.length > 0 && !cartFormEl.querySelector('[name=size]:checked')) {
+      e.preventDefault();
+      if (sizeReqBadge) sizeReqBadge.style.display = 'inline';
+      sizes[0].closest('.d-flex')?.scrollIntoView({behavior:'smooth',block:'center'});
+      valid = false;
+    } else if (sizeReqBadge) { sizeReqBadge.style.display = 'none'; }
+    if (colors.length > 0 && !cartFormEl.querySelector('[name=color]:checked')) {
+      e.preventDefault();
+      if (colorReqBadge) colorReqBadge.style.display = 'inline';
+      valid = false;
+    } else if (colorReqBadge) { colorReqBadge.style.display = 'none'; }
+    return valid;
+  });
+}
+
+function submitBuyNow(){
+  const sf=document.getElementById('cartForm');
+  const bf=document.getElementById('buyNowForm');
+  if(!bf)return;
+  // Validate size/color first
+  const sizes = sf ? sf.querySelectorAll('[name=size]') : [];
+  const colors = sf ? sf.querySelectorAll('[name=color]') : [];
+  const sizeReqBadge = document.getElementById('sizeReqBadge');
+  const colorReqBadge = document.getElementById('colorReqBadge');
+  if (sizes.length > 0 && !sf.querySelector('[name=size]:checked')) {
+    if (sizeReqBadge) sizeReqBadge.style.display = 'inline';
+    sf.querySelector('[name=size]')?.closest('.d-flex')?.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  if (colors.length > 0 && !sf.querySelector('[name=color]:checked')) {
+    if (colorReqBadge) colorReqBadge.style.display = 'inline';
+    return;
+  }
+  const sizeEl=sf?sf.querySelector('[name=size]:checked'):null;
+  const colorEl=sf?sf.querySelector('[name=color]:checked'):null;
+  const qtyEl=sf?sf.querySelector('[name=qty]'):null;
+  if(sizeEl&&document.getElementById('buyNowSize'))document.getElementById('buyNowSize').value=sizeEl.value;
+  if(colorEl&&document.getElementById('buyNowColor'))document.getElementById('buyNowColor').value=colorEl.value;
+  if(qtyEl&&document.getElementById('buyNowQty'))document.getElementById('buyNowQty').value=qtyEl.value;
+  bf.submit();
+}
+
+function checkPincode(){
+  const pin=document.getElementById('pincodeInput').value.trim();
+  const res=document.getElementById('pincodeResult');
+  if(pin.length!==6){res.style.display='block';res.innerHTML='<span style="color:var(--danger)">6-digit pincode daalo.</span>';return;}
+  res.style.display='block';res.innerHTML='<span class="small-muted">Checking...</span>';
+  fetch('/api/pincode-check?pincode='+pin).then(r=>r.json()).then(d=>{
+    if(d.serviceable){res.innerHTML='<span style="color:var(--success)">✓ '+d.msg+(d.cod?' · COD available':'')+'</span>';}
+    else{res.innerHTML='<span style="color:var(--danger)">✗ Delivery not available</span>';}
+  }).catch(()=>{res.innerHTML='<span class="small-muted">Check failed.</span>';});
+}
+document.getElementById('pincodeInput')?.addEventListener('keyup',e=>{if(e.key==='Enter')checkPincode();});
+
+function copyLink(btn){
+  navigator.clipboard.writeText(window.location.href).then(()=>{
+    const old=btn.textContent;btn.textContent='✓ Copied!';setTimeout(()=>btn.textContent=old,2000);
+  });
+}
+
+fetch('/api/track-view/{{ p.id }}',{method:'POST'}).catch(()=>{});
+
+{% if p.size_chart_data %}
+(function(){
+  try{
+    const raw={{ p.size_chart_data | tojson }};
+    const d=typeof raw==='string'?JSON.parse(raw):raw;
+    if(!d||!d.cols||!d.rows||d.rows.length===0)return;
+    let html='<div style="overflow-x:auto"><table class="table table-sm" style="font-size:0.84rem">';
+    html+='<thead style="background:rgba(255,255,255,0.05)"><tr><th>Size</th>';
+    d.cols.forEach(c=>{html+=`<th style="white-space:nowrap">${c}</th>`;});
+    html+='</tr></thead><tbody>';
+    d.rows.forEach(row=>{
+      if(!row||!row.length)return;
+      html+='<tr><td style="font-weight:600;color:var(--accent)">'+(row[0]||'')+'</td>';
+      d.cols.forEach((_,ci)=>{html+='<td>'+(row[ci+1]||'—')+'</td>';});
+      html+='</tr>';
+    });
+    html+='</tbody></table></div>';
+    document.getElementById('scRendered').innerHTML=html;
+  }catch(e){}
+})();
+{% endif %}
+</script>
+<script>
+// Sticky CTA bar scroll behavior — reviews ke upar chipak jaye
+(function(){
+  var bar = document.getElementById('base-cta-bar');
+  var reviews = document.getElementById('reviews-section');
+  if (!bar || !reviews) return;
+
+  function updateBar() {
+    var reviewsRect = reviews.getBoundingClientRect();
+    var barH = bar.offsetHeight;
+    // Jab reviews section bottom of screen ke paas aaye, bar upar shift ho
+    if (reviewsRect.top <= window.innerHeight) {
+      // Reviews visible ho gayi — bar reviews ke upar chipke
+      var offset = window.innerHeight - reviewsRect.top;
+      bar.style.bottom = Math.min(offset, reviewsRect.height - barH) + 'px';
+    } else {
+      // Reviews abhi neeche hain — bar bilkul bottom pe
+      bar.style.bottom = '0px';
+    }
+  }
+
+  window.addEventListener('scroll', updateBar, {passive: true});
+  updateBar();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h1 class="h4 fw-bold m-0">Help Center</h1>
+    <div class="small-muted">Tickets raise karo, admin reply karega ✅</div>
+  </div>
+  <a class="btn btn-primary" href="/support/new">New ticket</a>
+</div>
+
+{% if not tks or tks|length==0 %}
+  <div class="card p-4 text-center small-muted">No tickets yet.</div>
+{% else %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>ID</th><th>Subject</th><th>Status</th><th>Updated</th></tr></thead>
+      <tbody>
+        {% for t in tks %}
+          <tr>
+            <td>#{{ t.id }}</td>
+            <td><a href="/support/{{ t.id }}">{{ t.subject }}</a></td>
+            <td><span class="badge {% if t.status in ['Resolved','Closed'] %}bg-success{% elif t.status=='Pending' %}bg-warning text-dark{% else %}bg-info{% endif %}">{{ t.status }}</span></td>
+            <td class="small text-muted">{{ t.updated_at }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+{% endblock %}

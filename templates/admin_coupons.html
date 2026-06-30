@@ -1,0 +1,94 @@
+{% extends "admin_layout.html" %}
+{% block admin %}
+<h1 class="h4 fw-bold mb-3">🎟 Coupons</h1>
+
+<div class="card p-3 mb-3">
+  <div class="fw-semibold mb-3" style="font-size:0.95rem">Create New Coupon</div>
+  <form method="post" class="row g-2">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="action" value="create">
+
+    <div class="col-md-3">
+      <label class="form-label small">Coupon Code *</label>
+      <input class="form-control input" name="code" placeholder="e.g. SAVE10" required style="text-transform:uppercase">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small">Discount Type *</label>
+      <select class="form-select input" name="discount_type">
+        <option value="percent">Percent (%)</option>
+        <option value="flat">Flat (₹)</option>
+      </select>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small">Discount Value *</label>
+      <input class="form-control input" name="discount_value" type="number" step="0.01" min="0" placeholder="10" required>
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small">Min Order (₹)</label>
+      <input class="form-control input" name="min_order" type="number" step="0.01" min="0" value="0" placeholder="0">
+    </div>
+    <div class="col-md-2">
+      <label class="form-label small">Max Uses</label>
+      <input class="form-control input" name="max_uses" type="number" min="1" value="100" placeholder="100">
+    </div>
+    <div class="col-md-3">
+      <label class="form-label small">Expires At (optional)</label>
+      <input class="form-control input" name="expires_at" type="datetime-local">
+    </div>
+    <div class="col-12 d-flex justify-content-end mt-1">
+      <button class="btn btn-primary">➕ Create Coupon</button>
+    </div>
+  </form>
+</div>
+
+<div class="card p-3">
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Type</th>
+          <th>Value</th>
+          <th>Min Order</th>
+          <th>Uses / Max</th>
+          <th>Status</th>
+          <th>Expires</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in coupons %}
+        <tr>
+          <td class="fw-semibold">{{ c.code }}</td>
+          <td>{{ c.discount_type }}</td>
+          <td>{% if c.discount_type == 'percent' %}{{ c.discount_value|int }}%{% else %}₹{{ c.discount_value|int }}{% endif %}</td>
+          <td>₹{{ c.min_order|int }}</td>
+          <td>{{ c.uses }} / {{ c.max_uses }}</td>
+          <td>
+            {% if c.active %}
+              <span class="badge-success">Active</span>
+            {% else %}
+              <span class="badge-danger">Inactive</span>
+            {% endif %}
+          </td>
+          <td>{{ c.expires_at.strftime('%d %b %Y') if c.expires_at else '—' }}</td>
+          <td>
+            <form method="post" style="margin:0">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="action" value="toggle">
+              <input type="hidden" name="coupon_id" value="{{ c.id }}">
+              <button class="btn btn-sm btn-outline-light">
+                {% if c.active %}Deactivate{% else %}Activate{% endif %}
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not coupons %}
+        <tr><td colspan="8" class="text-center" style="color:var(--muted);padding:30px">Koi coupon nahi hai abhi.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

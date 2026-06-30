@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block page_title %}Categories — Xoptime{% endblock %}
+{% block content %}
+<style>
+.cat-hero { background:linear-gradient(135deg,rgba(155,31,232,0.12) 0%,rgba(99,102,241,0.08) 100%);border:1px solid var(--border);border-radius:20px;padding:28px 24px 20px;margin-bottom:24px; }
+.cat-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px; }
+.cat-card { background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px 12px;text-align:center;cursor:pointer;text-decoration:none;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:8px; }
+.cat-card:hover,.cat-card.active { border-color:var(--accent);background:rgba(155,31,232,0.08);transform:translateY(-2px); }
+.cat-emoji { font-size:2rem;line-height:1; }
+.cat-name { font-size:0.82rem;font-weight:600;color:var(--text);line-height:1.3; }
+.cat-count { font-size:0.7rem;color:var(--muted); }
+.filter-bar { background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center; }
+.filter-chip { background:var(--bg);border:1px solid var(--border2);border-radius:999px;padding:5px 14px;font-size:0.8rem;color:var(--muted);cursor:pointer;text-decoration:none;white-space:nowrap;transition:all .15s; }
+.filter-chip:hover,.filter-chip.active { background:rgba(155,31,232,0.12);border-color:var(--accent);color:var(--accent); }
+.prod-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px; }
+@media(max-width:600px){ .cat-grid{grid-template-columns:repeat(3,1fr)} .prod-grid{grid-template-columns:repeat(2,1fr)} }
+.prod-card { background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;text-decoration:none;display:flex;flex-direction:column;transition:transform .2s; }
+.prod-card:hover { transform:translateY(-3px);border-color:var(--border2); }
+.prod-card img { width:100%;aspect-ratio:1;object-fit:cover;background:var(--bg2); }
+.prod-card-body { padding:10px 10px 12px; }
+.prod-card-title { font-size:0.8rem;font-weight:500;color:var(--text);line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;margin-bottom:6px; }
+.prod-card-price { font-size:1rem;font-weight:700;color:var(--text); }
+.prod-card-mrp { font-size:0.75rem;color:var(--muted);text-decoration:line-through; }
+.prod-card-off { font-size:0.72rem;color:#34d399;font-weight:600; }
+.stars-mini { font-size:0.72rem;color:#fbbf24; }
+.empty-state { text-align:center;padding:60px 20px;color:var(--muted); }
+.price-range-row { display:flex;gap:8px;align-items:center; }
+.price-input { background:var(--bg);border:1px solid var(--border2);border-radius:8px;padding:5px 10px;color:var(--text);font-size:0.82rem;width:80px; }
+</style>
+
+<!-- Hero -->
+<div class="cat-hero">
+  <div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+      <h1 class="fw-bold mb-1" style="font-size:1.4rem">{% if selected_cat %}{{ selected_cat }}{% else %}All Categories{% endif %}</h1>
+      <div class="small-muted">{{ total }} products</div>
+    </div>
+    {% if selected_cat %}
+    <a href="/categories" class="btn btn-sm btn-outline-light" style="border-radius:999px">✕ Clear</a>
+    {% endif %}
+  </div>
+  <!-- Category Scroll -->
+  <div class="cat-grid">
+    {% for cat in all_categories %}
+    <a href="/categories?cat={{ cat.name|urlencode }}{% if request.args.get('sort') %}&sort={{ request.args.get('sort') }}{% endif %}" 
+       class="cat-card {% if selected_cat==cat.name %}active{% endif %}">
+      <div class="cat-emoji">{{ cat.emoji }}</div>
+      <div class="cat-name">{{ cat.name }}</div>
+      <div class="cat-count">{{ cat.count }} items</div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+  <span style="font-size:0.8rem;color:var(--muted);font-weight:600">Sort:</span>
+  {% for val,label in [('newest','Newest'),('price_asc','Price ↑'),('price_desc','Price ↓'),('rating','Top Rated'),('discount','Discount')] %}
+  <a href="/categories?{% if selected_cat %}cat={{ selected_cat|urlencode }}&{% endif %}sort={{ val }}{% if request.args.get('min') %}&min={{ request.args.get('min') }}{% endif %}{% if request.args.get('max') %}&max={{ request.args.get('max') }}{% endif %}{% if request.args.get('rating') %}&rating={{ request.args.get('rating') }}{% endif %}"
+     class="filter-chip {% if sort==val %}active{% endif %}">{{ label }}</a>
+  {% endfor %}
+  <div style="flex:1"></div>
+  <form method="get" action="/categories" style="display:flex;align-items:center;gap:6px">
+    {% if selected_cat %}<input type="hidden" name="cat" value="{{ selected_cat }}">{% endif %}
+    {% if sort %}<input type="hidden" name="sort" value="{{ sort }}">{% endif %}
+    {% if request.args.get('rating') %}<input type="hidden" name="rating" value="{{ request.args.get('rating') }}">{% endif %}
+    <span style="font-size:0.8rem;color:var(--muted)">₹</span>
+    <input class="price-input" type="number" name="min" placeholder="Min" value="{{ request.args.get('min','') }}">
+    <span style="font-size:0.8rem;color:var(--muted)">–</span>
+    <input class="price-input" type="number" name="max" placeholder="Max" value="{{ request.args.get('max','') }}">
+    <button class="btn btn-sm btn-outline-light" type="submit" style="border-radius:8px;font-size:0.78rem">Go</button>
+  </form>
+  <!-- Rating filter -->
+  <div style="display:flex;gap:4px;align-items:center">
+    <span style="font-size:0.8rem;color:var(--muted)">Min ⭐</span>
+    {% for r in [4,3,2] %}
+    <a href="/categories?{% if selected_cat %}cat={{ selected_cat|urlencode }}&{% endif %}{% if sort %}sort={{ sort }}&{% endif %}{% if request.args.get('min') %}min={{ request.args.get('min') }}&{% endif %}{% if request.args.get('max') %}max={{ request.args.get('max') }}&{% endif %}rating={{ r }}"
+       class="filter-chip {% if request.args.get('rating')|int == r %}active{% endif %}" style="padding:4px 10px">{{ r }}+</a>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- Products Grid -->
+{% if products %}
+<div class="prod-grid mb-4">
+  {% for p in products %}
+  <a href="/p/{{ p.id }}" class="prod-card">
+    <img src="{{ p.image_url or '/static/placeholder.png' }}" alt="{{ p.title }}" loading="lazy">
+    <div class="prod-card-body">
+      {% if p.is_flash_sale %}
+      <div style="font-size:0.65rem;background:#ef4444;color:#fff;border-radius:4px;padding:2px 6px;display:inline-block;margin-bottom:4px;font-weight:700">⚡ Flash Sale</div>
+      {% endif %}
+      <div class="prod-card-title">{{ p.title }}</div>
+      <div class="d-flex align-items-baseline gap-2 flex-wrap">
+        <span class="prod-card-price">₹{{ "%.0f"|format(p.flash_sale_price if p.is_flash_sale and p.flash_sale_price else p.price) }}</span>
+        {% if p.mrp and p.mrp > p.price %}
+        <span class="prod-card-mrp">₹{{ "%.0f"|format(p.mrp) }}</span>
+        {% set off = ((p.mrp - p.price) / p.mrp * 100)|int %}
+        {% if off > 0 %}<span class="prod-card-off">{{ off }}% off</span>{% endif %}
+        {% endif %}
+      </div>
+      {% if p.avg_rating and p.avg_rating > 0 %}
+      <div class="stars-mini mt-1">
+        {{ "★" * (p.avg_rating|int) }}{{ "☆" * (5 - p.avg_rating|int) }}
+        <span style="color:var(--muted);font-size:0.68rem">({{ p.review_count }})</span>
+      </div>
+      {% endif %}
+      {% if p.stock <= 5 and p.stock > 0 %}
+      <div style="font-size:0.68rem;color:#f59e0b;margin-top:4px">Only {{ p.stock }} left!</div>
+      {% endif %}
+    </div>
+  </a>
+  {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if total_pages > 1 %}
+<div class="d-flex justify-content-center gap-2 flex-wrap">
+  {% for pg in range(1, total_pages+1) %}
+  <a href="/categories?{% if selected_cat %}cat={{ selected_cat|urlencode }}&{% endif %}{% if sort %}sort={{ sort }}&{% endif %}{% if request.args.get('min') %}min={{ request.args.get('min') }}&{% endif %}{% if request.args.get('max') %}max={{ request.args.get('max') }}&{% endif %}{% if request.args.get('rating') %}rating={{ request.args.get('rating') }}&{% endif %}page={{ pg }}"
+     class="btn btn-sm {% if page==pg %}btn-primary{% else %}btn-outline-light{% endif %}" style="border-radius:8px;min-width:36px">{{ pg }}</a>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% else %}
+<div class="empty-state">
+  <div style="font-size:3rem;margin-bottom:12px">🔍</div>
+  <div class="fw-semibold mb-1">Koi product nahi mila</div>
+  <div class="small-muted mb-3">Filter change karo ya koi aur category dekho</div>
+  <a href="/categories" class="btn btn-outline-light">Sab Categories Dekho</a>
+</div>
+{% endif %}
+
+{% endblock %}

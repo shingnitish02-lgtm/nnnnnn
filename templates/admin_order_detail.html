@@ -1,0 +1,83 @@
+{% extends "admin_layout.html" %}
+{% block admin %}
+
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h1 class="h4 fw-bold mb-1">Order #{{ o.public_id }}</h1>
+    <div class="small-muted">{{ o.created_at }} • {{ o.pay_mode }}</div>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline btn-sm" target="_blank" href="/admin/orders/{{ o.id }}/invoice">Print Invoice</a>
+    <span class="badge-soft align-self-center">{{ o.status }}</span>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card p-3 mb-3">
+      <div class="fw-semibold mb-2">Update tracking / status</div>
+      <form method="post" class="row g-2">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="col-md-6">
+          <label class="small-muted">Status</label>
+          <select class="form-select input" name="status">
+            {% for st in ["placed","processing","shipped","out_for_delivery","delivered","cancelled"] %}
+              <option value="{{ st }}" {% if o.status==st %}selected{% endif %}>{{ st }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-6">
+          <label class="small-muted">Courier</label>
+          <input class="form-control input" name="courier_name" placeholder="e.g. Delhivery" value="{{ o.courier_name or '' }}">
+        </div>
+        <div class="col-md-6">
+          <label class="small-muted">AWB / Tracking ID</label>
+          <input class="form-control input" name="awb" placeholder="e.g. 1234567890" value="{{ o.awb or o.tracking_id or '' }}">
+        </div>
+        <div class="col-md-6">
+          <label class="small-muted">Tracking URL (optional)</label>
+          <input class="form-control input" name="tracking_url" placeholder="https://..." value="{{ o.tracking_url or '' }}">
+        </div>
+        <div class="col-md-4 d-grid">
+          <button class="btn btn-primary">Save</button>
+        </div>
+        <div class="col-md-8">
+          {% if o.tracking_url %}
+            <div class="small-muted mt-2">Link: <a target="_blank" href="{{ o.tracking_url }}">Open tracking</a></div>
+          {% endif %}
+          <div class="small-muted mt-1">Shipped at: {{ o.shipped_at or "—" }} • Delivered at: {{ o.delivered_at or "—" }}</div>
+        </div>
+      </form>
+    </div>
+
+    <div class="card p-3">
+      <div class="fw-semibold mb-2">Items</div>
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead><tr><th>Item</th><th>Seller</th><th>Qty</th><th>Total</th></tr></thead>
+          <tbody>
+            {% for it in items %}
+              <tr>
+                <td class="fw-semibold">{{ it.title }}</td>
+                <td class="small-muted">{{ it.seller_name }}{% if it.seller_gstin %}<div class="small-muted">GSTIN: {{ it.seller_gstin }}</div>{% endif %}</td>
+                <td>{{ it.qty }}</td>
+                <td class="fw-bold">₹{{ "%.2f"|format(it.line_total) }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card p-3">
+      <div class="fw-semibold">Buyer details</div>
+      <div class="small-muted">{{ o.buyer_name }}</div>
+      <div class="small-muted">{{ o.phone }}</div>
+      <div class="small-muted mt-2" style="white-space:pre-line">{{ o.address }}</div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

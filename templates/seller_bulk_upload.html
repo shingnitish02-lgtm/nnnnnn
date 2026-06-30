@@ -1,0 +1,113 @@
+{% extends "seller_layout.html" %}
+{% block seller %}
+
+<div class="mb-4">
+  <span class="section-label">Inventory</span>
+  <h1 class="mb-1">Bulk Product Upload</h1>
+  <p class="small-muted mb-0">Upload multiple products at once using a CSV file.</p>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <div class="card p-4">
+      <form method="post" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="mb-4">
+          <div class="form-section-head">Step 1 — Download Template</div>
+          <p class="small-muted mb-3">Download the CSV template, fill in your product details, then upload it below.</p>
+          <a href="/seller/bulk-upload/template" class="btn btn-outline-light">
+            📥 Download CSV Template
+          </a>
+        </div>
+
+        <div class="mb-4" style="border-top:1px solid var(--border);padding-top:20px">
+          <div class="form-section-head">Step 2 — Upload Your File</div>
+          <div class="mb-3" id="dropZone" style="border:2px dashed var(--border2);border-radius:16px;padding:32px;text-align:center;cursor:pointer;transition:border-color .2s"
+            ondragover="event.preventDefault();this.style.borderColor='var(--gold)'"
+            ondragleave="this.style.borderColor='var(--border2)'"
+            ondrop="handleDrop(event)">
+            <div style="font-size:2rem;margin-bottom:8px">📂</div>
+            <div class="fw-semibold mb-1">Drag & drop your CSV here</div>
+            <div class="small-muted mb-3">or click to browse</div>
+            <input type="file" name="csv_file" id="csvFile" accept=".csv" style="display:none" onchange="showFileName(this)">
+            <button type="button" class="btn btn-outline-light btn-sm" onclick="document.getElementById('csvFile').click()">Choose File</button>
+            <div id="fileName" class="small-muted mt-2" style="display:none"></div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" type="submit">Upload & Import Products</button>
+      </form>
+    </div>
+
+    {% if results %}
+    <div class="card p-4 mt-3">
+      <span class="section-label">Upload Results</span>
+      <div class="row g-3 mb-3">
+        <div class="col-4"><div class="kpi text-center" style="padding:12px"><div class="kpi-value" style="color:var(--success)">{{ results.success }}</div><div class="kpi-sub">Imported</div></div></div>
+        <div class="col-4"><div class="kpi text-center" style="padding:12px"><div class="kpi-value" style="color:var(--danger)">{{ results.errors|length }}</div><div class="kpi-sub">Errors</div></div></div>
+        <div class="col-4"><div class="kpi text-center" style="padding:12px"><div class="kpi-value">{{ results.total }}</div><div class="kpi-sub">Total Rows</div></div></div>
+      </div>
+      {% if results.errors %}
+      <div class="form-section-head">Errors</div>
+      <div class="vstack gap-2">
+        {% for err in results.errors %}
+        <div class="alert alert-danger mb-0" style="font-size:0.85rem">Row {{ err.row }}: {{ err.message }}</div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card p-4">
+      <div class="fw-semibold mb-3">CSV Column Reference</div>
+      <div class="vstack gap-2">
+        {% for col, req, desc in [
+          ('title', True, 'Product name'),
+          ('category', True, 'Category (Fashion, Electronics, etc.)'),
+          ('description', False, 'Product description'),
+          ('price', True, 'Selling price (number)'),
+          ('mrp', False, 'Original MRP price'),
+          ('stock', True, 'Available stock quantity'),
+          ('gst_percent', False, 'GST % (default 18)'),
+          ('hsn', False, 'HSN code'),
+          ('brand', False, 'Brand name'),
+          ('size_options', False, 'Comma-separated: S,M,L,XL'),
+          ('color_options', False, 'Comma-separated: Red,Blue'),
+          ('image_url', False, 'Direct image URL'),
+        ] %}
+        <div style="font-size:0.82rem;padding:6px 0;border-bottom:1px solid var(--border)">
+          <span class="fw-semibold">{{ col }}</span>
+          {% if req %}<span class="badge-danger ms-1" style="font-size:0.68rem;padding:1px 6px">Required</span>{% endif %}
+          <div class="small-muted">{{ desc }}</div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showFileName(input) {
+  const el = document.getElementById('fileName');
+  if (input.files.length) {
+    el.textContent = '✓ ' + input.files[0].name;
+    el.style.display = 'block';
+  }
+}
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('dropZone').style.borderColor = 'var(--border2)';
+  const file = e.dataTransfer.files[0];
+  if (file) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('csvFile').files = dt.files;
+    showFileName(document.getElementById('csvFile'));
+  }
+}
+</script>
+
+{% endblock %}

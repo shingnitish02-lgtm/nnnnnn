@@ -1,0 +1,43 @@
+services:
+  - type: web
+    name: xoptime
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn wsgi:app --workers 2 --bind 0.0.0.0:$PORT
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: CRON_SECRET
+        generateValue: true
+      - key: FLASK_DEBUG
+        value: false
+      - key: PLATFORM_COMMISSION
+        value: "10"
+      # ── Baaki env vars Render dashboard se manually set karo ──
+      # RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_ACCOUNT_NUMBER
+      # RAZORPAY_WEBHOOK_SECRET  (Razorpay Dashboard > Webhooks se lo)
+      # SHIPROCKET_EMAIL, SHIPROCKET_PASSWORD, SHIPROCKET_CHANNEL_ID
+      # CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+      # DATABASE_URL  (Neon se copy karo)
+
+  - type: cron
+    name: xoptime-settlement
+    runtime: python
+    schedule: "0 */6 * * *"   # har 6 ghante
+    buildCommand: pip install -r requirements.txt
+    startCommand: >
+      python -c "
+      import os, requests;
+      secret = os.getenv('CRON_SECRET','');
+      url = os.getenv('APP_URL','') + '/cron/run-settlement';
+      r = requests.post(url, headers={'Authorization': f'Bearer {secret}'});
+      print(r.status_code, r.text)
+      "
+    envVars:
+      - key: APP_URL
+        value: https://xoptime.onrender.com   # apna actual URL daalo
+      - key: CRON_SECRET
+        fromService:
+          name: xoptime
+          type: web
+          envVarKey: CRON_SECRET

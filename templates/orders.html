@@ -1,0 +1,360 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  .orders-page { max-width: 640px; margin: 0 auto; padding-bottom: 32px; }
+
+  .orders-topbar {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 16px;
+  }
+  .orders-topbar h1 {
+    font-size: 1.25rem; font-weight: 700; margin: 0; color: var(--text);
+  }
+  .orders-topbar a {
+    color: var(--muted); font-size: 1.3rem; line-height: 1;
+    text-decoration: none;
+  }
+
+  .orders-search-bar {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 20px;
+  }
+  .orders-search-wrap {
+    flex: 1; position: relative;
+  }
+  .orders-search-wrap input {
+    width: 100%; padding: 10px 14px 10px 38px;
+    background: var(--surface); border: 1px solid var(--border2);
+    border-radius: 999px; color: var(--text); font-size: 0.9rem;
+    outline: none;
+  }
+  .orders-search-wrap input::placeholder { color: var(--muted); }
+  .orders-search-wrap .search-icon {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    font-size: 1rem; pointer-events: none;
+  }
+  .filter-btn {
+    display: flex; align-items: center; gap: 6px;
+    background: transparent; border: none;
+    color: var(--text); font-size: 0.9rem; font-weight: 500;
+    cursor: pointer; white-space: nowrap; padding: 0 4px;
+  }
+
+  .filter-pills {
+    display: flex; gap: 8px; overflow-x: auto;
+    padding-bottom: 4px; margin-bottom: 16px;
+    scrollbar-width: none;
+  }
+  .filter-pills::-webkit-scrollbar { display: none; }
+  .filter-pill {
+    flex-shrink: 0; padding: 5px 14px;
+    border: 1px solid var(--border2); border-radius: 999px;
+    font-size: 0.8rem; color: var(--muted); cursor: pointer;
+    background: transparent; transition: all 0.2s; white-space: nowrap;
+  }
+  .filter-pill.active {
+    background: rgba(201,168,76,0.12);
+    border-color: rgba(201,168,76,0.4);
+    color: var(--gold2);
+  }
+
+  .order-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+  .order-card:hover { border-color: var(--border2); }
+
+  .order-card-main {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 16px;
+    text-decoration: none; color: inherit;
+  }
+  .order-card-main:hover { color: inherit; }
+
+  .order-img-wrap { position: relative; flex-shrink: 0; }
+  .order-img {
+    width: 72px; height: 72px; border-radius: 10px;
+    object-fit: cover; border: 1px solid var(--border2);
+    background: var(--surface2);
+  }
+  .order-img-placeholder {
+    width: 72px; height: 72px; border-radius: 10px;
+    border: 1px solid var(--border2);
+    background: var(--surface2);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 2rem;
+  }
+  .order-qty-badge {
+    position: absolute; top: -6px; left: -6px;
+    background: #1a1a2e; border: 1px solid var(--border2);
+    color: var(--text); font-size: 0.72rem; font-weight: 700;
+    border-radius: 6px; padding: 1px 6px;
+  }
+
+  .order-info { flex: 1; min-width: 0; }
+  .order-status-row { display: flex; align-items: center; gap: 6px; margin-bottom: 2px; }
+  .order-status-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .order-status-text {
+    font-size: 0.95rem; font-weight: 700;
+  }
+  .order-status-sub {
+    font-size: 0.78rem; color: var(--muted); margin: 2px 0 0; line-height: 1.4;
+  }
+  .order-title {
+    font-size: 0.85rem; color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .order-amount { font-size: 0.82rem; color: var(--muted); margin-top: 3px; }
+
+  .status-delivered  { color: var(--success); }
+  .status-shipped    { color: #60a5fa; }
+  .status-processing { color: var(--gold2); }
+  .status-cancelled  { color: var(--danger); }
+  .status-refund     { color: var(--accent); }
+
+  .dot-delivered  { background: var(--success); }
+  .dot-shipped    { background: #60a5fa; }
+  .dot-processing { background: var(--gold2); }
+  .dot-cancelled  { background: var(--danger); }
+  .dot-refund     { background: var(--accent); }
+
+  .order-chevron { color: var(--muted); font-size: 1.2rem; flex-shrink: 0; }
+
+  .order-refund-box {
+    margin: 0 16px 12px; padding: 10px 12px;
+    background: var(--surface2); border: 1px solid var(--border2);
+    border-radius: 10px; font-size: 0.78rem; color: var(--muted);
+  }
+  .order-refund-box strong { color: var(--text); font-weight: 600; }
+  .order-refund-box .refund-id { color: var(--gold2); font-weight: 600; }
+
+  .order-review-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 16px 12px;
+    border-top: 1px solid var(--border);
+  }
+  .review-label { font-size: 0.83rem; color: var(--muted); font-weight: 500; }
+  .star-row { display: flex; gap: 3px; }
+  .star-btn {
+    background: transparent; border: none; cursor: pointer;
+    color: var(--border2); font-size: 1.4rem; padding: 0;
+    line-height: 1; transition: color 0.15s;
+  }
+  .star-btn:hover, .star-btn.filled { color: var(--gold); }
+
+  .orders-empty {
+    text-align: center; padding: 60px 20px;
+  }
+  .orders-empty .empty-icon { font-size: 3.5rem; margin-bottom: 16px; }
+  .orders-empty h3 { color: var(--text); margin-bottom: 8px; }
+  .orders-empty p { color: var(--muted); font-size: 0.9rem; }
+</style>
+
+<div class="orders-page">
+
+  <div class="orders-topbar">
+    <a href="/">←</a>
+    <h1>My Orders</h1>
+  </div>
+
+  <div class="orders-search-bar">
+    <div class="orders-search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="orderSearch" placeholder="Search your order..." oninput="filterOrders()">
+    </div>
+    <button class="filter-btn" onclick="toggleFilters()">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:2px"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+      Filters
+    </button>
+  </div>
+
+  <div class="filter-pills" id="filterPills" style="display:none">
+    <button class="filter-pill active" onclick="setFilter('all', this)">All</button>
+    <button class="filter-pill" onclick="setFilter('delivered', this)">Delivered</button>
+    <button class="filter-pill" onclick="setFilter('shipped', this)">Shipped</button>
+    <button class="filter-pill" onclick="setFilter('processing', this)">Processing</button>
+    <button class="filter-pill" onclick="setFilter('cancelled', this)">Cancelled</button>
+    <button class="filter-pill" onclick="setFilter('refund', this)">Refund</button>
+  </div>
+
+  <div id="ordersList">
+  {% if orders %}
+    {% for o in orders %}
+    {% set first_item = o.order_items[0] if o.order_items else none %}
+    {% set total_qty = namespace(val=0) %}
+    {% for it in o.order_items %}{% set total_qty.val = total_qty.val + it.qty %}{% endfor %}
+
+    <div class="order-card"
+         data-status="{{ o.status }}"
+         data-title="{{ (first_item.title if first_item else '') | lower }}"
+         data-id="{{ o.public_id | lower }}">
+
+      <a class="order-card-main" href="/orders/{{ o.id }}">
+        <div class="order-img-wrap">
+          {% if first_item and first_item.image_url %}
+            <img class="order-img" src="{{ first_item.image_url }}" alt="{{ first_item.title }}" loading="lazy">
+          {% else %}
+            <div class="order-img-placeholder">📦</div>
+          {% endif %}
+          {% if total_qty.val > 1 %}
+            <span class="order-qty-badge">x{{ total_qty.val }}</span>
+          {% endif %}
+        </div>
+
+        <div class="order-info">
+          {% set st = o.status %}
+          {% set dot_cls =
+              'dot-delivered' if st == 'delivered'
+              else 'dot-shipped' if st in ['shipped', 'out_for_delivery', 'ReadyToShip', 'ready_to_ship']
+              else 'dot-cancelled' if st in ['cancelled', 'rto', 'rto_delivered']
+              else 'dot-refund' if st in ['refund', 'refunded']
+              else 'dot-processing' %}
+          {% set text_cls =
+              'status-delivered' if st == 'delivered'
+              else 'status-shipped' if st in ['shipped', 'out_for_delivery', 'ReadyToShip', 'ready_to_ship']
+              else 'status-cancelled' if st in ['cancelled', 'rto', 'rto_delivered']
+              else 'status-refund' if st in ['refund', 'refunded']
+              else 'status-processing' %}
+
+          <div class="order-status-row">
+            <span class="order-status-dot {{ dot_cls }}"></span>
+            <span class="order-status-text {{ text_cls }}">
+              {% if st == 'delivered' %}
+                Delivered on {{ o.delivered_at.strftime('%b %d') if o.delivered_at else (o.updated_at.strftime('%b %d') if o.updated_at else 'recently') }}
+              {% elif st == 'out_for_delivery' %}
+                Out for Delivery
+              {% elif st in ['shipped', 'ReadyToShip', 'ready_to_ship'] %}
+                Shipped
+              {% elif st == 'cancelled' %}
+                Cancelled on {{ o.cancelled_at.strftime('%b %d') if o.cancelled_at else (o.updated_at.strftime('%b %d') if o.updated_at else 'recently') }}
+              {% elif st in ['refund', 'refunded'] %}
+                Refund Completed
+              {% elif st in ['rto', 'rto_delivered'] %}
+                Returned to Origin
+              {% elif st == 'accepted' %}
+                Confirmed
+              {% elif st == 'processing' %}
+                Processing
+              {% else %}
+                Order Placed
+              {% endif %}
+            </span>
+          </div>
+
+          {% if st == 'cancelled' and o.cancel_reason %}
+          <div class="order-status-sub">{{ o.cancel_reason }}</div>
+          {% elif st in ['refund', 'refunded'] and o.refund_id %}
+          <div class="order-status-sub">Refund ID: {{ o.refund_id }}</div>
+          {% endif %}
+
+          <div class="order-title">
+            {% if first_item %}
+              {{ first_item.title[:50] }}{% if first_item.title|length > 50 %}…{% endif %}
+            {% else %}
+              Order #{{ o.public_id }}
+            {% endif %}
+          </div>
+          <div class="order-amount">
+            ₹{{ "%.0f"|format(o.total_amount) }}
+            {% if o.order_items|length > 1 %} · {{ o.order_items|length }} items{% endif %}
+          </div>
+        </div>
+
+        <span class="order-chevron">›</span>
+      </a>
+
+      {% if o.status in ['cancelled'] and o.cancel_reason %}
+      <div class="order-refund-box">
+        Your order was cancelled{% if o.cancelled_by == 'seller' %} by the seller{% endif %} — <strong>{{ o.cancel_reason }}</strong>
+      </div>
+      {% elif o.status in ['refund', 'refunded'] and o.refund_id %}
+      <div class="order-refund-box">
+        <strong>Refund Completed</strong> <span class="refund-id">(Refund ID: {{ o.refund_id }})</span><br>
+        ₹{{ "%.0f"|format(o.refund_amount) if o.refund_amount else "%.0f"|format(o.total_amount) }} was added to your wallet
+        {% if o.refund_completed_at %} on {{ o.refund_completed_at.strftime('%b %d, %I:%M %p') }}{% endif %}.
+      </div>
+      {% endif %}
+
+      {% if o.status in ['delivered', 'refund', 'refunded'] and first_item %}
+      <div class="order-review-row">
+        <span class="review-label">Rate &amp; Review</span>
+        <div class="star-row" id="stars-{{ o.id }}">
+          {% for i in range(1, 6) %}
+          <button class="star-btn" onclick="rateOrder({{ o.id }}, {{ i }}, {{ first_item.product_id }})" title="{{ i }} star">★</button>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+    {% endfor %}
+
+    <div id="noResults" style="display:none" class="orders-empty">
+      <div class="empty-icon">🔍</div>
+      <h3>No orders found</h3>
+      <p>Try a different search or filter</p>
+    </div>
+
+  {% else %}
+    <div class="orders-empty">
+      <div class="empty-icon">📦</div>
+      <h3>No orders yet</h3>
+      <p>Start shopping to see your orders here.</p>
+      <a href="/" class="btn btn-primary mt-3">Shop Now</a>
+    </div>
+  {% endif %}
+  </div>
+
+</div>
+
+<script>
+let activeFilter = 'all';
+
+function toggleFilters() {
+  const p = document.getElementById('filterPills');
+  p.style.display = p.style.display === 'none' ? 'flex' : 'none';
+}
+
+function setFilter(status, el) {
+  activeFilter = status;
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  filterOrders();
+}
+
+function filterOrders() {
+  const q = document.getElementById('orderSearch').value.toLowerCase().trim();
+  const cards = document.querySelectorAll('.order-card');
+  let visible = 0;
+  cards.forEach(card => {
+    const status = card.dataset.status || '';
+    const matchFilter = activeFilter === 'all'
+      || status === activeFilter
+      || (activeFilter === 'refund' && (status === 'refund' || status === 'refunded'));
+    const matchSearch = !q
+      || (card.dataset.title || '').includes(q)
+      || (card.dataset.id || '').includes(q);
+    const show = matchFilter && matchSearch;
+    card.style.display = show ? '' : 'none';
+    if (show) visible++;
+  });
+  document.getElementById('noResults').style.display = visible === 0 ? 'block' : 'none';
+}
+
+function rateOrder(orderId, rating, productId) {
+  document.querySelectorAll(`#stars-${orderId} .star-btn`).forEach((s, i) => {
+    s.classList.toggle('filled', i < rating);
+  });
+  setTimeout(() => {
+    window.location.href = `/orders/${orderId}?rating=${rating}&product=${productId}#review-${productId}`;
+  }, 300);
+}
+</script>
+
+{% endblock %}

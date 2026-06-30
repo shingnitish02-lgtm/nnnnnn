@@ -1,0 +1,503 @@
+{% extends "base.html" %}
+{% block content %}
+<h1 class="h4 fw-bold mb-3">Checkout</h1>
+
+{% if summary.unavailable %}
+<div class="alert alert-warning mb-3">
+  Kuch items unavailable hain aur cart se remove kar diye gaye: {{ summary.unavailable | join(', ') }}
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-lg-7">
+    <div class="card p-4">
+      <form method="post" id="checkoutForm" action="/checkout">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {% if saved_addresses %}
+        {# ── Saved Addresses ── #}
+        <div class="mb-4">
+          <div class="form-section-head mb-2">Delivery Address</div>
+
+          <div class="vstack gap-2 mb-3">
+            {% for addr in saved_addresses %}
+            <label class="d-flex gap-3 p-3" style="border:1px solid var(--border2);border-radius:12px;cursor:pointer">
+              <input type="radio" name="addr_idx" value="{{ loop.index0 }}"
+                {% if loop.first %}checked{% endif %}
+                onchange="switchAddr(this.value)"
+                style="margin-top:4px;flex-shrink:0">
+              <div>
+                <div class="fw-semibold" style="font-size:0.9rem">{{ addr.name }}</div>
+                <div class="small-muted" style="font-size:0.82rem">{{ addr.address }}{% if addr.pincode %}, {{ addr.pincode }}{% endif %}</div>
+                <div class="small-muted" style="font-size:0.8rem">📞 {{ addr.phone }}</div>
+              </div>
+            </label>
+            {% endfor %}
+            <label class="d-flex gap-3 p-3" style="border:1px dashed var(--border2);border-radius:12px;cursor:pointer">
+              <input type="radio" name="addr_idx" value="new" onchange="switchAddr('new')" style="margin-top:4px;flex-shrink:0">
+              <div class="small-muted">➕ Naya address daalo</div>
+            </label>
+          </div>
+
+          {# One hidden field block per saved address — only one enabled at a time via JS #}
+          {% for addr in saved_addresses %}
+          <div id="sf_{{ loop.index0 }}" class="saved-block">
+            <input type="hidden" name="buyer_name" value="{{ addr.name }}">
+            <input type="hidden" name="phone"      value="{{ addr.phone }}">
+            <input type="hidden" name="address"    value="{{ addr.address }}">
+            <input type="hidden" name="pincode"    value="{{ addr.pincode or '' }}">
+          </div>
+          {% endfor %}
+
+          {# New address form #}
+          <div id="newAddrForm" style="display:none">
+            <div class="row g-2">
+              <div class="col-md-6">
+                <label class="form-label">Full Name</label>
+                <input class="form-control input" id="na_name" placeholder="Apna naam">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Phone</label>
+                <input class="form-control input" id="na_phone" maxlength="10" placeholder="10-digit mobile">
+              </div>
+              <div class="col-12">
+                <label class="form-label">Address</label>
+                <textarea class="form-control input" id="na_address" rows="3" placeholder="House/Flat, Street, Area, City"></textarea>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Pincode</label>
+                <input class="form-control input" id="na_pincode" maxlength="6" placeholder="6-digit">
+              </div>
+              <div class="col-md-6 d-flex align-items-end pb-1">
+                <div class="d-flex align-items-center gap-2">
+                  <input type="checkbox" name="save_address" id="saveAddr" value="1">
+                  <label for="saveAddr" class="small-muted mb-0" style="font-size:0.85rem">Save for future</label>
+                </div>
+              </div>
+            </div>
+            {# Hidden fields filled by JS from new address inputs before submit #}
+            <input type="hidden" id="hid_name"    name="buyer_name" disabled>
+            <input type="hidden" id="hid_phone"   name="phone"      disabled>
+            <input type="hidden" id="hid_address" name="address"    disabled>
+            <input type="hidden" id="hid_pincode" name="pincode"    disabled>
+          </div>
+        </div>
+
+        {% else %}
+        {# ── First time user — no saved addresses ── #}
+        <div class="mb-4">
+          <div class="form-section-head mb-2">Delivery Details</div>
+          <div class="row g-2">
+            <div class="col-md-6">
+              <label class="form-label">Full Name</label>
+              <input class="form-control input" name="buyer_name" required value="{{ session.get('name','') }}" placeholder="Apna naam">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Phone</label>
+              <input class="form-control input" name="phone" required maxlength="10" placeholder="10-digit mobile">
+            </div>
+            <div class="col-12">
+              <label class="form-label">Address</label>
+              <textarea class="form-control input" name="address" required rows="3" placeholder="House/Flat, Street, Area, City"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Pincode</label>
+              <input class="form-control input" name="pincode" maxlength="6" placeholder="6-digit">
+            </div>
+            <div class="col-md-6 d-flex align-items-end pb-1">
+              <div class="d-flex align-items-center gap-2">
+                <input type="checkbox" name="save_address" id="saveAddr" value="1">
+                <label for="saveAddr" class="small-muted mb-0" style="font-size:0.85rem">Save for future</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
+        {# ── Payment Method ── #}
+        <div class="form-section-head mb-2">Payment Method</div>
+        <div class="vstack gap-2 mb-3">
+          <label class="d-flex align-items-center gap-3 p-3" style="border:1px solid var(--border2);border-radius:12px;cursor:pointer">
+            <input type="radio" name="pay_mode" value="COD" checked>
+            <span style="font-size:1.2rem">💵</span>
+            <div>
+              <div class="fw-semibold" style="font-size:0.9rem">Cash on Delivery</div>
+              <div class="small-muted" style="font-size:0.78rem">Pay when order arrives</div>
+            </div>
+            <span class="ms-auto" style="font-size:0.72rem;color:var(--success)">Free</span>
+          </label>
+
+          {% if rzp_key_id %}
+          <label class="d-flex align-items-center gap-3 p-3" style="border:1px solid var(--border2);border-radius:12px;cursor:pointer">
+            <input type="radio" name="pay_mode" value="RAZORPAY">
+            <span style="font-size:1.2rem">💳</span>
+            <div>
+              <div class="fw-semibold" style="font-size:0.9rem">Card / Net Banking</div>
+              <div class="small-muted" style="font-size:0.78rem">Via Razorpay — 100% secure</div>
+            </div>
+          </label>
+          {% endif %}
+
+          <label class="d-flex align-items-center gap-3 p-3" style="border:1px solid var(--border2);border-radius:12px;cursor:pointer">
+            <input type="radio" name="pay_mode" value="UPI" onchange="document.getElementById('upiField').style.display='block'">
+            <span style="font-size:1.2rem">📱</span>
+            <div>
+              <div class="fw-semibold" style="font-size:0.9rem">UPI</div>
+              <div class="small-muted" style="font-size:0.78rem">GPay, PhonePe, Paytm</div>
+            </div>
+          </label>
+
+          {% if rzp_key_id %}
+          <label class="d-flex align-items-center gap-3 p-3" style="border:1px solid var(--border2);border-radius:12px;cursor:pointer">
+            <input type="radio" name="pay_mode" value="QR_CODE" onchange="document.getElementById('upiField').style.display='none'">
+            <span style="font-size:1.2rem">📷</span>
+            <div>
+              <div class="fw-semibold" style="font-size:0.9rem">UPI QR Code</div>
+              <div class="small-muted" style="font-size:0.78rem">Scan & pay — GPay, PhonePe, any UPI app</div>
+            </div>
+            <span class="ms-auto" style="font-size:0.68rem;background:rgba(52,211,153,0.15);color:var(--success);padding:2px 7px;border-radius:6px;font-weight:700">Instant</span>
+          </label>
+          {% endif %}
+
+          <label class="d-flex align-items-center gap-3 p-3" style="border:1px solid var(--border2);border-radius:12px;cursor:pointer">
+            <input type="radio" name="pay_mode" value="WALLET" onchange="document.getElementById('upiField').style.display='none'">
+            <span style="font-size:1.2rem">👛</span>
+            <div>
+              <div class="fw-semibold" style="font-size:0.9rem">Wallet Balance</div>
+              <div class="small-muted" style="font-size:0.78rem">Available: Rs.{{ "%.2f"|format(user.wallet_balance or 0) }}</div>
+            </div>
+          </label>
+
+
+          {% if summary.total >= 1000 %}
+          <label class="d-flex align-items-center gap-3 p-3" style="border:1px solid rgba(251,191,36,0.3);border-radius:12px;cursor:pointer;background:rgba(251,191,36,0.04)" onclick="document.getElementById('emiPanel').style.display='block'">
+            <input type="radio" name="pay_mode" value="EMI" onchange="document.getElementById('emiPanel').style.display='block';document.getElementById('upiField').style.display='none'">
+            <span style="font-size:1.2rem">📅</span>
+            <div>
+              <div class="fw-semibold" style="font-size:0.9rem">EMI / Pay Later</div>
+              <div class="small-muted" style="font-size:0.78rem">No Cost EMI — 3, 6, 12 months</div>
+            </div>
+            <span class="ms-auto" style="font-size:0.68rem;background:rgba(251,191,36,0.15);color:#fbbf24;padding:2px 7px;border-radius:6px;font-weight:700">0% EMI</span>
+          </label>
+          {% endif %}
+        </div>
+
+        <!-- EMI Panel -->
+        <div id="emiPanel" style="display:none;background:rgba(251,191,36,0.06);border:1px solid rgba(251,191,36,0.2);border-radius:12px;padding:14px 16px;margin-bottom:12px">
+          <div class="fw-semibold mb-2" style="font-size:0.88rem;color:var(--gold2)">📅 Select EMI Tenure</div>
+          <div class="d-flex gap-2 flex-wrap mb-2">
+            {% for mo in [3, 6, 12] %}
+            <label style="flex:1;min-width:80px;border:1px solid rgba(251,191,36,0.3);border-radius:10px;padding:10px;text-align:center;cursor:pointer">
+              <input type="radio" name="emi_months" value="{{ mo }}" style="display:none" class="emi-radio">
+              <div style="font-size:0.78rem;color:var(--muted)">{{ mo }} months</div>
+              <div style="font-size:0.88rem;font-weight:700;color:var(--gold2)">₹{{ "%.0f"|format(summary.total / mo) }}/mo</div>
+              <div style="font-size:0.65rem;color:var(--success)">0% interest</div>
+            </label>
+            {% endfor %}
+          </div>
+          <div class="small-muted" style="font-size:0.75rem">Eligible: HDFC, ICICI, SBI, Axis, Kotak. Via Razorpay.</div>
+        </div>
+
+        <div id="upiField" class="mb-3" style="display:none">
+          <label class="form-label">UPI ID</label>
+          <input class="form-control input" name="upi_id" placeholder="name@okaxis / 9999@paytm">
+        </div>
+
+
+        {# ── Place Order Button ── #}
+        <button class="btn btn-primary w-100 mt-2" type="submit" id="placeOrderBtn" style="font-size:1rem;padding:14px">
+          🛒 Place Order — Rs.{{ "%.2f"|format(summary.total) }}
+        </button>
+        <p class="small-muted text-center mt-2 mb-0" style="font-size:0.78rem">🔒 100% Secure · 7-day Easy Return</p>
+      </form>
+    </div>
+  </div>
+
+  {# ── Order Summary Sidebar ── #}
+  <div class="col-lg-5">
+    <div class="card p-4 mb-3">
+      <div class="fw-semibold mb-3">Order Summary</div>
+      {% for it in items %}
+      <div class="d-flex gap-3 align-items-start mb-3">
+        <img src="{{ it.image_url or url_for('static', filename='placeholder.png') }}"
+             style="width:52px;height:52px;object-fit:cover;border-radius:8px;border:1px solid var(--border);flex-shrink:0" alt="">
+        <div style="flex:1;min-width:0">
+          <div style="font-size:0.88rem;font-weight:500">{{ it.title[:45] }}{% if it.title|length > 45 %}…{% endif %}</div>
+          <div class="small-muted" style="font-size:0.78rem">
+            Qty: {{ it.qty }}{% if it.size %} · {{ it.size }}{% endif %}{% if it.color %} · {{ it.color }}{% endif %}
+          </div>
+        </div>
+        <div class="fw-semibold" style="white-space:nowrap">Rs.{{ "%.0f"|format(it.line_total) }}</div>
+      </div>
+      {% endfor %}
+      <div class="hr"></div>
+      <div class="d-flex justify-content-between mb-1">
+        <div class="small-muted">Subtotal</div><div>Rs.{{ "%.2f"|format(summary.subtotal) }}</div>
+      </div>
+      <div class="d-flex justify-content-between mb-1">
+        <div class="small-muted">GST</div><div>Rs.{{ "%.2f"|format(summary.gst_total) }}</div>
+      </div>
+      {# Shipping charge intentionally hidden from checkout display — amount is still included in summary.total #}
+      {% if summary.discount and summary.discount > 0 %}
+      <div class="d-flex justify-content-between mb-1">
+        <div class="small-muted">Discount</div>
+        <div style="color:var(--success)">-Rs.{{ "%.2f"|format(summary.discount) }}</div>
+      </div>
+      {% endif %}
+      <div class="hr"></div>
+      <div class="d-flex justify-content-between align-items-center">
+        <div class="fw-bold">Total</div>
+        <div class="fw-bold" style="font-size:1.3rem;color:var(--gold2)">Rs.{{ "%.2f"|format(summary.total) }}</div>
+      </div>
+    </div>
+
+    <div class="card p-3" style="border-color:rgba(52,211,153,0.2);background:rgba(52,211,153,0.04)">
+      <div class="fw-semibold mb-2" style="font-size:0.9rem;color:var(--success)">✅ Safe Shopping</div>
+      <div class="small-muted" style="font-size:0.8rem">✓ 7-day hassle-free returns</div>
+      <div class="small-muted" style="font-size:0.8rem">✓ 100% genuine products</div>
+      <div class="small-muted" style="font-size:0.8rem">✓ Secure payment</div>
+    </div>
+  </div>
+</div>
+
+{% if qr_mode %}
+<div id="qrPayModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px">
+  <div style="background:var(--card);border-radius:20px;padding:28px 24px;max-width:380px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.4)">
+    <div style="font-size:1.1rem;font-weight:700;margin-bottom:4px">📱 Scan & Pay</div>
+    <div class="small-muted mb-3" style="font-size:0.82rem">Order #{{ public_id }} · <strong style="color:var(--gold2)">Rs.{{ "%.2f"|format(summary.total) }}</strong></div>
+
+    {% if qr_image_url %}
+      <img id="qrImg" src="{{ qr_image_url }}" alt="UPI QR Code"
+           style="width:220px;height:220px;border-radius:12px;border:3px solid var(--gold2);margin-bottom:12px"
+           onerror="this.style.display='none';document.getElementById('qrFallback').style.display='flex'">
+      <div id="qrFallback" style="display:none;width:220px;height:220px;margin:0 auto 12px;background:var(--bg2);border-radius:12px;flex-direction:column;align-items:center;justify-content:center;border:2px dashed var(--border2);gap:8px">
+        <div style="font-size:2rem">⚠️</div>
+        <div class="small-muted" style="font-size:0.78rem">QR load nahi hua</div>
+        <div style="font-size:0.72rem;color:var(--muted)">Neeche UPI link use karo</div>
+      </div>
+    {% else %}
+      <div style="width:220px;height:220px;margin:0 auto 12px;background:var(--bg2);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;border:2px dashed var(--border2);gap:8px">
+        <div style="font-size:2rem">⚠️</div>
+        <div class="small-muted" style="font-size:0.78rem">QR generate nahi hua</div>
+        {% if qr_error_msg %}
+        <div style="font-size:0.68rem;color:var(--muted);padding:0 8px;word-break:break-word">{{ qr_error_msg[:80] }}</div>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <div id="qrStatus" style="font-size:0.88rem;margin-bottom:8px;color:var(--muted)">
+      ⏳ Payment ka wait kar rahe hain...
+    </div>
+
+    <!-- Countdown timer -->
+    <div style="font-size:0.78rem;color:var(--muted);margin-bottom:10px">
+      GPay / PhonePe / Paytm se scan karo &nbsp;|&nbsp;
+      Time left: <span id="qrCountdown" style="color:var(--gold2);font-weight:600">15:00</span>
+    </div>
+
+    <!-- Manual payment confirmed button (if webhook slow) -->
+    <div style="margin-bottom:14px">
+      <button onclick="checkPaymentNow()" class="btn btn-sm" style="background:var(--bg2);border:1px solid var(--border2);color:var(--text);font-size:0.78rem;padding:4px 14px">
+        🔄 Payment check karo
+      </button>
+    </div>
+
+    <div class="d-flex gap-2">
+      <a href="/orders" class="btn btn-outline-secondary w-50" style="font-size:0.83rem">Orders dekho</a>
+      <a href="/" class="btn w-50" style="font-size:0.83rem;background:var(--gold2);color:#000">Home jaao</a>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var orderId  = "{{ order_db_id }}";
+  var totalSec = 900; // 15 min
+  var elapsed  = 0;
+
+  function pad(n) { return n < 10 ? "0" + n : n; }
+
+  // Countdown
+  var ticker = setInterval(function() {
+    elapsed++;
+    var left = totalSec - elapsed;
+    if (left <= 0) {
+      clearInterval(ticker);
+      document.getElementById("qrCountdown").textContent = "00:00";
+      document.getElementById("qrStatus").innerHTML =
+        "<span style='color:#f87171'>⏰ Time out! Agar payment kiya tha toh 'Payment check karo' dabao.</span>";
+      return;
+    }
+    var m = Math.floor(left / 60), s = left % 60;
+    document.getElementById("qrCountdown").textContent = pad(m) + ":" + pad(s);
+  }, 1000);
+
+  // Payment status poll
+  function checkPaymentNow() {
+    fetch("/payment/qr-status?order_id=" + orderId)
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.payment_status === "paid" || data.status === "confirmed") {
+          clearInterval(ticker);
+          clearInterval(interval);
+          document.getElementById("qrStatus").innerHTML =
+            "<span style='color:var(--success);font-weight:700'>✅ Payment hua! Order confirmed ho gaya.</span>";
+          setTimeout(function() { window.location.href = "/orders"; }, 2000);
+        } else {
+          document.getElementById("qrStatus").innerHTML =
+            "⏳ Abhi payment nahi hua. Scan karo aur try karo...";
+          setTimeout(function() {
+            document.getElementById("qrStatus").innerHTML =
+              "⏳ Payment ka wait kar rahe hain...";
+          }, 2000);
+        }
+      })
+      .catch(function() {});
+  }
+
+  // Auto-poll every 4 seconds
+  var interval = setInterval(checkPaymentNow, 4000);
+  window.checkPaymentNow = checkPaymentNow;
+})();
+</script>
+{% endif %}
+
+{% if razorpay_redirect %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+window.onload = function() {
+  var isUpi = "{{ pay_mode_selected|default('') }}" === "UPI";
+  var prefillUpi = "{{ prefill_upi|default('') }}";
+
+  var opts = {
+    key: "{{ rzp_key_id }}",
+    amount: {{ razorpay_order.amount }},
+    currency: "INR",
+    name: "Xoptime",
+    description: "Order #{{ public_id }}",
+    order_id: "{{ razorpay_order.id }}",
+    handler: function(response) {
+      var f = document.createElement('form');
+      f.method = 'POST'; f.action = '/payment/verify';
+      [['csrf_token','{{ csrf_token() }}'],
+       ['razorpay_payment_id', response.razorpay_payment_id],
+       ['razorpay_order_id',   response.razorpay_order_id],
+       ['razorpay_signature',  response.razorpay_signature],
+       ['order_db_id',         '{{ order_db_id }}']
+      ].forEach(function(p) {
+        var i = document.createElement('input');
+        i.type = 'hidden'; i.name = p[0]; i.value = p[1];
+        f.appendChild(i);
+      });
+      document.body.appendChild(f); f.submit();
+    },
+    prefill: {
+      name:    "{{ session.get('name','') }}",
+      email:   "{{ session.get('email','') }}",
+      contact: "{{ session.get('phone','') }}"
+    },
+    theme: { color: "#c9a84c" }
+  };
+
+  if (isUpi) {
+    opts.method = { upi: true, card: false, netbanking: false, wallet: false, emi: false };
+    if (prefillUpi) { opts.prefill.vpa = prefillUpi; }
+  }
+
+  new Razorpay(opts).open();
+};
+</script>
+{% endif %}
+
+<script>
+function switchAddr(val) {
+  // Hide + disable ALL saved blocks
+  document.querySelectorAll('.saved-block').forEach(function(el) {
+    el.style.display = 'none';
+    el.querySelectorAll('input').forEach(function(i) { i.disabled = true; });
+  });
+  var newForm = document.getElementById('newAddrForm');
+  var hidName    = document.getElementById('hid_name');
+  var hidPhone   = document.getElementById('hid_phone');
+  var hidAddress = document.getElementById('hid_address');
+  var hidPincode = document.getElementById('hid_pincode');
+
+  if (val === 'new') {
+    if (newForm) newForm.style.display = 'block';
+    // Hidden fields will be filled on submit
+    if (hidName)    { hidName.disabled    = false; }
+    if (hidPhone)   { hidPhone.disabled   = false; }
+    if (hidAddress) { hidAddress.disabled = false; }
+    if (hidPincode) { hidPincode.disabled = false; }
+  } else {
+    if (newForm) newForm.style.display = 'none';
+    if (hidName)    { hidName.disabled    = true; }
+    if (hidPhone)   { hidPhone.disabled   = true; }
+    if (hidAddress) { hidAddress.disabled = true; }
+    if (hidPincode) { hidPincode.disabled = true; }
+    // Show + enable selected saved block
+    var block = document.getElementById('sf_' + val);
+    if (block) {
+      block.style.display = 'block';
+      block.querySelectorAll('input').forEach(function(i) { i.disabled = false; });
+    }
+  }
+}
+
+// Init on load
+(function() {
+  var checked = document.querySelector('input[name="addr_idx"]:checked');
+  if (checked) switchAddr(checked.value);
+})();
+
+// Form submit handler
+document.getElementById('checkoutForm').addEventListener('submit', function(e) {
+  var checked = document.querySelector('input[name="addr_idx"]:checked');
+  if (checked) {
+    if (checked.value === 'new') {
+      // Copy visible inputs into hidden fields
+      var n  = document.getElementById('na_name');
+      var p  = document.getElementById('na_phone');
+      var a  = document.getElementById('na_address');
+      var pi = document.getElementById('na_pincode');
+
+      if (!n || !n.value.trim())                   { e.preventDefault(); alert('Naam daalo.'); return; }
+      if (!p || !/^\d{10}$/.test(p.value.trim()))  { e.preventDefault(); alert('Valid 10-digit phone daalo.'); return; }
+      if (!a || !a.value.trim())                   { e.preventDefault(); alert('Address daalo.'); return; }
+
+      document.getElementById('hid_name').value    = n.value.trim();
+      document.getElementById('hid_phone').value   = p.value.trim();
+      document.getElementById('hid_address').value = a.value.trim();
+      document.getElementById('hid_pincode').value = pi ? pi.value.trim() : '';
+    } else {
+      switchAddr(checked.value);
+    }
+  }
+
+  var btn = document.getElementById('placeOrderBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Placing Order...'; }
+});
+
+// EMI tenure selection highlight
+document.querySelectorAll('.emi-radio').forEach(function(radio) {
+  radio.addEventListener('change', function() {
+    document.querySelectorAll('.emi-radio').forEach(function(r) {
+      r.closest('label').style.borderColor = 'rgba(251,191,36,0.3)';
+      r.closest('label').style.background = '';
+    });
+    this.closest('label').style.borderColor = '#fbbf24';
+    this.closest('label').style.background = 'rgba(251,191,36,0.12)';
+  });
+});
+
+// UPI/EMI toggle
+document.querySelectorAll('[name=pay_mode]').forEach(function(r) {
+  r.addEventListener('change', function() {
+    var upi = document.getElementById('upiField');
+    var emi = document.getElementById('emiPanel');
+    if (upi) upi.style.display = this.value === 'UPI' ? 'block' : 'none';
+    if (emi) emi.style.display = this.value === 'EMI' ? 'block' : 'none';
+  });
+});
+</script>
+{% endblock %}

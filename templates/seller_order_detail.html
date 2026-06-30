@@ -1,0 +1,186 @@
+{% extends "seller_layout.html" %}
+{% block seller %}
+
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <a href="/seller/orders" class="small-muted text-decoration-none">← Orders</a>
+    <h1 class="h4 fw-bold mb-1 mt-1">Order #{{ o.public_id }}</h1>
+    <div class="small-muted">{{ o.created_at.strftime('%d %b %Y %H:%M') if o.created_at else '' }} &nbsp;•&nbsp; {{ o.pay_mode }}</div>
+  </div>
+  <div>
+    {% if o.status == 'pending' %}
+      <span class="badge-soft" style="color:#f59e0b;border-color:rgba(245,158,11,0.3);font-size:0.9rem">⏳ Pending — Action Required</span>
+    {% elif o.status == 'accepted' %}
+      <span class="badge-soft" style="color:var(--accent);font-size:0.9rem">✅ Accepted</span>
+    {% elif o.status == 'ReadyToShip' %}
+      <span class="badge-soft" style="color:#60a5fa;font-size:0.9rem">📦 Ready to Ship</span>
+    {% elif o.status == 'Shipped' %}
+      <span class="badge-soft" style="color:#a78bfa;font-size:0.9rem">🚚 Shipped</span>
+    {% elif o.status in ('delivered','Delivered') %}
+      <span class="badge-soft" style="color:var(--success);font-size:0.9rem">✓ Delivered</span>
+    {% elif o.status == 'cancelled' %}
+      <span class="badge-soft" style="color:var(--rose);font-size:0.9rem">✗ Cancelled</span>
+    {% else %}
+      <span class="badge-soft" style="font-size:0.9rem">{{ o.status }}</span>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Action Buttons -->
+{% if o.status in ('pending','confirmed') %}
+<div class="card p-4 mb-4" style="border-color:rgba(245,158,11,0.3);background:rgba(245,158,11,0.04)">
+  <div class="fw-semibold mb-1" style="color:#f59e0b">⚠️ Yeh order aapke action ka wait kar raha hai</div>
+  <div class="small-muted mb-3">Accept karo agar aap yeh order fulfill kar sakte ho. Reject karo agar stock nahi hai ya koi problem hai.</div>
+  <div class="d-flex gap-3">
+    <form method="post" action="/seller/orders/{{ o.id }}/accept">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button class="btn btn-primary px-4">✅ Accept Order</button>
+    </form>
+    <button class="btn btn-outline-light" onclick="document.getElementById('rejectBox').style.display='block';this.style.display='none'">
+      ✗ Reject Order
+    </button>
+  </div>
+  <!-- Reject form (hidden by default) -->
+  <div id="rejectBox" style="display:none;margin-top:16px">
+    <form method="post" action="/seller/orders/{{ o.id }}/reject">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="form-label small-muted">Reject karne ki wajah (buyer ko dikhegi)</label>
+      <select class="form-select input mb-2" name="reason">
+        <option>Item out of stock hai</option>
+        <option>Delivery address ke liye ship nahi kar sakte</option>
+        <option>Order mein koi issue hai</option>
+        <option>Other reason</option>
+      </select>
+      <button class="btn btn-sm" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);color:#f87171" onclick="return confirm('Pakka reject karna hai?')">
+        Confirm Reject
+      </button>
+      <button type="button" class="btn btn-sm btn-outline-light ms-2" onclick="document.getElementById('rejectBox').style.display='none';document.querySelector('[onclick*=rejectBox]').style.display=''">
+        Cancel
+      </button>
+    </form>
+  </div>
+</div>
+{% endif %}
+
+{% if o.status == 'accepted' %}
+<div class="card p-4 mb-4" style="border-color:rgba(52,211,153,0.2);background:rgba(52,211,153,0.04)">
+  <div class="fw-semibold mb-1" style="color:var(--success)">📦 Order pack kar ke Ready to Ship mark karo</div>
+  <div class="small-muted mb-3">Jab order pack ho jaye aur courier ke liye ready ho, tab yeh button dabao.</div>
+  <form method="post" action="/seller/orders/{{ o.id }}/ready">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-primary">📦 Mark as Ready to Ship</button>
+  </form>
+</div>
+{% endif %}
+
+{% if o.status == 'ReadyToShip' %}
+<div class="card p-4 mb-4" style="border-color:rgba(96,165,250,0.2);background:rgba(96,165,250,0.04)">
+  <div class="fw-semibold mb-1" style="color:#60a5fa">🚚 Courier pickup schedule ho gaya</div>
+  <div class="small-muted mb-2">Shiprocket ne automatically courier assign kar diya hai aur pickup request bhej di hai.</div>
+  {% if o.awb %}
+  <div class="d-flex flex-wrap gap-3">
+    <div>
+      <div class="small-muted" style="font-size:0.78rem">AWB Number</div>
+      <div class="fw-semibold">{{ o.awb }}</div>
+    </div>
+    <div>
+      <div class="small-muted" style="font-size:0.78rem">Courier</div>
+      <div class="fw-semibold">{{ o.courier_name or "Auto-assigned" }}</div>
+    </div>
+    {% if o.tracking_url %}
+    <div class="ms-auto align-self-end">
+      <a href="{{ o.tracking_url }}" target="_blank" class="btn btn-sm btn-outline-light">🔗 Track Live</a>
+    </div>
+    {% endif %}
+  </div>
+  {% else %}
+  <div class="small-muted" style="color:#f59e0b">⚠️ AWB generate nahi hua — .env mein Shiprocket credentials check karo.</div>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if o.tracking_url or o.awb %}
+<div class="card p-3 mb-4" style="border-color:rgba(167,139,250,0.2)">
+  <div class="small-muted mb-1">Tracking Info</div>
+  {% if o.courier_name %}<div><span class="small-muted">Courier:</span> <strong>{{ o.courier_name }}</strong></div>{% endif %}
+  {% if o.awb %}<div><span class="small-muted">AWB:</span> <strong>{{ o.awb }}</strong></div>{% endif %}
+  {% if o.tracking_url %}<div class="mt-1"><a href="{{ o.tracking_url }}" target="_blank" class="btn btn-sm btn-outline-light">🔗 Track Shipment</a></div>{% endif %}
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <!-- Items -->
+  <div class="col-lg-8">
+    <div class="card p-4 mb-3">
+      <div class="fw-semibold mb-3">Order Items</div>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead><tr><th>Product</th><th class="text-center">Qty</th><th class="text-end">Total</th></tr></thead>
+          <tbody>
+            {% for it in items %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ it.title }}</div>
+                {% if it.size or it.color %}
+                <div class="small-muted" style="font-size:0.8rem">
+                  {% if it.size %}Size: {{ it.size }}{% endif %}
+                  {% if it.color %} &nbsp;•&nbsp; Color: {{ it.color }}{% endif %}
+                </div>
+                {% endif %}
+                <div class="small-muted" style="font-size:0.78rem">₹{{ "%.2f"|format(it.price) }} each + {{ it.gst_percent }}% GST</div>
+              </td>
+              <td class="text-center fw-semibold">{{ it.qty }}</td>
+              <td class="text-end fw-bold">₹{{ "%.2f"|format(it.line_total) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      <div class="hr my-2"></div>
+      <div class="d-flex justify-content-between">
+        <div class="small-muted">Order Total</div>
+        <div class="fw-bold">₹{{ "%.2f"|format(o.total_amount) }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Buyer Details -->
+  <div class="col-lg-4">
+    <div class="card p-4 mb-3">
+      <div class="fw-semibold mb-3">Delivery Details</div>
+      <div class="mb-2">
+        <div class="small-muted">Buyer Name</div>
+        <div class="fw-semibold">{{ o.buyer_name }}</div>
+      </div>
+      <div class="mb-2">
+        <div class="small-muted">Phone</div>
+        <div class="fw-semibold">{{ o.phone }}</div>
+      </div>
+      <div class="mb-2">
+        <div class="small-muted">Address</div>
+        <div class="fw-semibold">{{ o.address }}</div>
+        {% if o.pincode %}<div class="small-muted">PIN: {{ o.pincode }}</div>{% endif %}
+      </div>
+      <div class="mb-2">
+        <div class="small-muted">Payment Mode</div>
+        <div class="fw-semibold">{{ o.pay_mode }}
+          {% if o.payment_status == 'paid' %}
+            <span class="badge-soft" style="color:var(--success);font-size:0.75rem">Paid</span>
+          {% elif o.pay_mode == 'COD' %}
+            <span class="badge-soft" style="font-size:0.75rem">Collect on delivery</span>
+          {% endif %}
+        </div>
+      </div>
+      {% if o.notes %}
+      <div class="mt-2 p-2" style="background:rgba(239,68,68,0.08);border-radius:8px;font-size:0.83rem;color:var(--rose)">
+        ⚠️ {{ o.notes }}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Print label -->
+    <a href="/seller/orders/{{ o.id }}/label" target="_blank" class="btn btn-outline-light w-100">🏷️ Print Shipping Label</a>
+  </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center mt-4">
+  <div class="col-md-5 col-lg-4">
+    <div class="text-center mb-4">
+      <span class="section-label">OTP Verification</span>
+      <h1 class="mb-1">OTP Daalo</h1>
+      <p class="small-muted">+91 {{ phone }} pe OTP bheja gaya hai</p>
+      {% if config.get('TESTING', True) %}
+      <div class="alert alert-warning py-2 mt-2" style="font-size:0.85rem;">
+        🧪 <strong>Testing Mode:</strong> Aapke WhatsApp pe OTP bheja gaya hai
+      </div>
+      {% endif %}
+    </div>
+    <div class="card p-4">
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-4">
+          <label class="form-label">6-digit OTP</label>
+          <input class="form-control text-center fw-bold"
+                 style="font-size:1.5rem; letter-spacing:0.5rem"
+                 type="text" name="otp" required
+                 maxlength="6" placeholder="••••••" autofocus
+                 inputmode="numeric" pattern="\d{6}">
+          <div class="form-text text-center">5 minute mein expire ho jaayega</div>
+        </div>
+        <button class="btn btn-primary w-100 py-2" type="submit">Verify & Login →</button>
+      </form>
+      <div class="text-center mt-3">
+        <a href="/login" class="small-muted">← Wapas jao</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

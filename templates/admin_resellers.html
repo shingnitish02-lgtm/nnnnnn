@@ -1,0 +1,76 @@
+{% extends "admin_layout.html" %}
+{% block admin_content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div><span class="section-label">Admin</span><h2 class="mb-0">Reseller Management</h2></div>
+  <div class="small-muted">{{ resellers|length }} resellers registered</div>
+</div>
+
+{% if resellers %}
+<div class="card p-0 overflow-hidden">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Reseller</th>
+          <th>Shop Name</th>
+          <th>Contact</th>
+          <th>Catalog</th>
+          <th>Joined</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in resellers %}
+        <tr>
+          <td>
+            <div class="fw-semibold" style="font-size:0.9rem">{{ r.name }}</div>
+            <div class="small-muted" style="font-size:0.78rem">{{ r.email }}</div>
+          </td>
+          <td>
+            <div class="fw-semibold" style="font-size:0.88rem">{{ r.shop_name or '—' }}</div>
+            {% if r.bio %}<div class="small-muted" style="font-size:0.75rem">{{ r.bio[:50] }}</div>{% endif %}
+          </td>
+          <td class="small-muted" style="font-size:0.85rem">{{ r.phone or '—' }}</td>
+          <td>
+            <span class="badge-soft" style="font-size:0.78rem">{{ r.catalog_count }} products</span>
+          </td>
+          <td class="small-muted" style="font-size:0.82rem">{{ r.created_at.strftime('%Y-%m-%d') if r.created_at else '' }}</td>
+          <td>
+            {% if r.reseller_status == 'active' %}
+            <span class="badge-success">Active</span>
+            {% elif r.reseller_status == 'suspended' %}
+            <span class="badge-danger">Suspended</span>
+            {% else %}
+            <span class="badge-soft">{{ r.reseller_status or 'Active' }}</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-2">
+              {% if r.reseller_status == 'suspended' %}
+              <form method="post" action="/admin/resellers/{{ r.user_id }}/activate">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-primary" type="submit">Activate</button>
+              </form>
+              {% else %}
+              <form method="post" action="/admin/resellers/{{ r.user_id }}/suspend" onsubmit="return confirm('Suspend this reseller?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-danger" type="submit">Suspend</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="empty text-center">
+  <div style="font-size:2.5rem;margin-bottom:12px">🏪</div>
+  <h3>Koi reseller nahi abhi tak</h3>
+  <p class="small-muted">Jab buyers reseller ban jayenge toh yahan dikhenge.</p>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,172 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Shipping Label – #{{ o.public_id }}</title>
+  <style>
+    * { box-sizing: border-box; }
+    @page { size: 4in 6in; margin: 8mm; }
+    body { background:#fff; color:#111; font-family: Arial, sans-serif; margin:0; padding:0; }
+
+    #toolbar {
+      background: #1a1a2e;
+      color: #fff;
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    #toolbar span { font-size: 14px; opacity: 0.8; }
+    .btn-dl {
+      background: #c9a84c;
+      color: #000;
+      border: none;
+      padding: 9px 22px;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .btn-back {
+      background: transparent;
+      color: #aaa;
+      border: 1px solid #444;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    @media print {
+      #toolbar { display: none !important; }
+    }
+
+    #label { padding: 14px; max-width: 4in; margin: 0 auto; }
+    .box{ border:1px solid #222; border-radius:10px; padding:12px; }
+    .row{ display:flex; gap:10px; }
+    .col{ flex:1; }
+    .muted{ color:#555; font-size:12px; }
+    .big{ font-size:18px; font-weight:800; }
+    .mid{ font-size:14px; font-weight:700; }
+    .hr{ height:1px; background:#222; margin:10px 0; }
+    .k{ font-weight:800; }
+    .stamp{ display:inline-block; border:2px solid #000; padding:4px 8px; border-radius:8px; font-weight:900; }
+    .codebox{ display:flex; gap:14px; align-items:flex-start; justify-content:space-around; }
+    .codecol{ display:flex; flex-direction:column; align-items:center; gap:4px; flex:1; }
+    .codecol-label{ font-size:10px; text-align:center; word-break:break-all; }
+    .qr{ width:86px; height:86px; border:1px solid #222; border-radius:10px; padding:6px; }
+  </style>
+</head>
+<body>
+
+  <div id="toolbar">
+    <div style="display:flex;gap:10px;align-items:center;">
+      <a class="btn-back" href="javascript:history.back()">← Back</a>
+      <span>Shipping Label — Order #{{ o.public_id }}</span>
+    </div>
+    <button class="btn-dl" onclick="downloadLabel()">⬇ Download / Print PDF</button>
+  </div>
+
+  <div id="label">
+    <div class="box">
+      <div class="row" style="align-items:flex-start;">
+        <div class="col">
+          <div class="muted">Order</div>
+          <div class="big">#{{ o.public_id }}</div>
+          <div class="muted">{{ o.created_at }}</div>
+        </div>
+        <div style="text-align:right;">
+          <div class="stamp">{{ "COD" if o.pay_mode=="COD" else "PREPAID" }}</div>
+          {% if o.pay_mode=="COD" %}
+            <div class="mid mt-2">&#8377;{{ "%.2f"|format(o.total_amount) }}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      {% if o.courier_name or o.awb or o.tracking_id %}
+        <div class="row" style="align-items:flex-start;">
+          <div class="col">
+            <div class="muted">Courier</div>
+            <div class="mid">{{ o.courier_name or "—" }}</div>
+            <div class="muted">AWB: <span class="k">{{ o.awb or o.tracking_id or "—" }}</span></div>
+          </div>
+        </div>
+        <div class="hr"></div>
+      {% endif %}
+
+      <div class="row">
+        <div class="col">
+          <div class="muted">TO (Buyer)</div>
+          <div class="mid">{{ o.buyer_name }}</div>
+          <div class="muted">{{ o.phone }}</div>
+          <div style="font-size:13px; line-height:1.25;">{{ o.address }}</div>
+          {% if o.pincode %}<div class="muted">PIN: {{ o.pincode }}</div>{% endif %}
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="row">
+        <div class="col">
+          <div class="muted">FROM (Seller)</div>
+          {% if seller %}
+            <div class="mid">{{ seller.name }}</div>
+            <div class="muted">{{ seller.phone or "" }}</div>
+            <div style="font-size:13px; line-height:1.25;">{{ seller.address or "Address not set" }}</div>
+            <div class="muted">Return: same as FROM</div>
+          {% else %}
+            <div class="mid">Xoptime</div>
+            <div class="muted">Return: Platform</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="muted">Items</div>
+      <ul style="margin:6px 0 0 18px; padding:0;">
+        {% for it in items %}
+          <li style="font-size:13px;">{{ it.title }} &times; {{ it.qty }}</li>
+        {% endfor %}
+      </ul>
+
+      {% if order_qr_b64 or awb_qr_b64 %}
+        <div class="hr"></div>
+        <div class="codebox">
+          {% if order_qr_b64 %}
+          <div class="codecol">
+            <div class="qr">
+              <img alt="Order QR" style="width:100%; height:100%; object-fit:contain;" src="data:image/png;base64,{{ order_qr_b64 }}">
+            </div>
+            <div class="muted codecol-label">Order: {{ o.public_id }}</div>
+          </div>
+          {% endif %}
+          {% if awb_qr_b64 %}
+          <div class="codecol">
+            <div class="qr">
+              <img alt="AWB QR" style="width:100%; height:100%; object-fit:contain;" src="data:image/png;base64,{{ awb_qr_b64 }}">
+            </div>
+            <div class="muted codecol-label">AWB: {{ o.awb or o.tracking_id }}</div>
+          </div>
+          {% endif %}
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+  <script>
+    function downloadLabel() {
+      // Set document title so saved PDF filename = order id
+      var origTitle = document.title;
+      document.title = 'Label-{{ o.public_id }}';
+      window.print();
+      document.title = origTitle;
+    }
+  </script>
+
+</body>
+</html>

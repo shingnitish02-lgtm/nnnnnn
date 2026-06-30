@@ -1,0 +1,84 @@
+{% extends "admin_layout.html" %}
+{% block admin_content %}
+<h1 class="h4 fw-bold mb-3">Products Management</h1>
+<div class="card p-0 overflow-hidden">
+  {% if products %}
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead><tr><th>Image</th><th>Title</th><th>Seller</th><th>Price</th><th>Shipping</th><th>Tags</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for p in products %}
+        <tr>
+          <td><img src="{{ p.image_url or url_for('static',filename='placeholder.png') }}" style="width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.08)"></td>
+          <td><div class="fw-semibold" style="font-size:0.9rem">{{ p.title[:45] }}</div><div class="small-muted" style="font-size:0.75rem">{{ p.category }}</div></td>
+          <td class="small-muted" style="font-size:0.85rem">{{ p.seller_name }}</td>
+          <td class="fw-bold">Rs.{{ "%.0f"|format(p.price) }}</td>
+          <td class="small-muted" style="font-size:0.85rem">
+            {% if p.approved %}
+              {% if p.shipping_charge and p.shipping_charge > 0 %}Rs.{{ "%.2f"|format(p.shipping_charge) }}{% else %}<span style="color:var(--success)">FREE</span>{% endif %}
+            {% else %}
+              <span style="opacity:0.5">—</span>
+            {% endif %}
+          </td>
+          <td>
+            <div class="d-flex gap-1 flex-wrap">
+              {% if p.trending %}<span class="badge-soft" style="color:var(--rose);font-size:0.7rem">🔥</span>{% endif %}
+              {% if p.is_flash_sale %}<span class="badge-danger" style="font-size:0.7rem">⚡</span>{% endif %}
+            </div>
+          </td>
+          <td><span class="{% if p.approved %}badge-success{% else %}badge-danger{% endif %}">{{ "Approved" if p.approved else "Pending" }}</span></td>
+          <td>
+            <div class="d-flex gap-1 flex-wrap">
+              {% if not p.approved %}
+              <form method="post" action="/admin/products/approve/{{ p.id }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-primary">✓ Approve</button>
+              </form>
+              {% else %}
+              <form method="post" action="/admin/products/unapprove/{{ p.id }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-sm btn-outline-light">Unpublish</button>
+              </form>
+              {% endif %}
+              <!-- Trending toggle -->
+              <form method="post" action="/admin/trending">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="pid" value="{{ p.id }}">
+                <button class="btn btn-sm {% if p.trending %}btn-outline-light{% else %}btn-outline-light{% endif %}" type="submit" title="Toggle Trending"
+                        style="{% if p.trending %}color:var(--rose){% endif %}">🔥</button>
+              </form>
+              <!-- Flash sale toggle -->
+              <button class="btn btn-sm btn-outline-light" style="{% if p.is_flash_sale %}color:#f87171{% endif %}"
+                      data-bs-toggle="modal" data-bs-target="#flashModal{{ p.id }}" title="Toggle Flash Sale">⚡</button>
+              <div class="modal fade" id="flashModal{{ p.id }}" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                  <div class="modal-content" style="background:var(--bg2);border:1px solid var(--border2)">
+                    <div class="modal-header" style="border-color:var(--border)">
+                      <h5 class="modal-title">⚡ Flash Sale Price</h5>
+                      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                      <form method="post" action="/admin/flash-tag">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="pid" value="{{ p.id }}">
+                        <label class="form-label">Flash Sale Price (leave empty to remove tag)</label>
+                        <input class="form-control input" name="flash_price" type="number" step="0.01" placeholder="Rs. Special Price" value="{{ p.flash_sale_price or '' }}">
+                        <div class="small-muted mt-2" style="font-size:0.8rem">Current price: Rs.{{ "%.0f"|format(p.price) }}</div>
+                        <button class="btn btn-primary mt-3 w-100" type="submit">{% if p.is_flash_sale %}Update / Remove{% else %}Add Flash Tag{% endif %}</button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="p-4 text-center"><div class="small-muted">No products found.</div></div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "seller_layout.html" %}
+{% block seller %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div>
+    <h1 class="h4 fw-bold mb-1">Inventory</h1>
+    <div class="small-muted">Your products</div>
+  </div>
+  <a class="btn btn-primary" href="/seller/products/new">+ Add Product</a>
+</div>
+
+<form class="row g-2 mb-3" method="get">
+  <div class="col-md-8"><input class="form-control input" name="q" value="{{ q or '' }}" placeholder="Search in inventory…"></div>
+  <div class="col-md-4 d-grid"><button class="btn btn-outline-light">Search</button></div>
+</form>
+
+<div class="card p-3">
+  {% if products %}
+  <div class="table-responsive">
+    <table class="table align-middle">
+      <thead><tr><th>Image</th><th>Title</th><th>Price</th><th>Shipping</th><th>Stock</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+        {% for p in products %}
+        <tr>
+          <td><img src="{{ p.image_url or url_for('static', filename='placeholder.png') }}" alt="{{ p.title }}" style="width:54px;height:54px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.08)"></td>
+          <td class="fw-semibold">{{ p.title }}<div class="small-muted">{{ p.category }}</div></td>
+          <td>₹{{ "%.2f"|format(p.price) }}</td>
+          <td>
+            {% if p.approved %}
+              {% if p.shipping_charge and p.shipping_charge > 0 %}₹{{ "%.2f"|format(p.shipping_charge) }}{% else %}<span class="small-muted">FREE</span>{% endif %}
+            {% else %}
+              <span class="small-muted">Pending approval</span>
+            {% endif %}
+          </td>
+          <td>{{ p.stock }}</td>
+          <td><span class="badge-soft">{{ "Approved" if p.approved else "Pending" }}</span></td>
+          <td class="text-end">
+            <a class="btn btn-sm btn-outline-light" href="/seller/products/edit/{{ p.id }}">Edit</a>
+            <a class="btn btn-sm btn-outline-light" href="/seller/products/delete/{{ p.id }}" onclick="return confirm('Delete?')">Delete</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="alert alert-warning mb-0">No products yet.</div>
+  {% endif %}
+</div>
+{% endblock %}
