@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block page_title %}{{ seller.name }}'s Shop — Xoptime{% endblock %}
+{% block og_title %}{{ seller.name }}'s Shop on Xoptime{% endblock %}
+{% block og_desc %}{{ stats.products }} products · {{ "%.1f"|format(stats.avg_rating) }}★ rating · Shop now on Xoptime{% endblock %}
+{% block content %}
+
+<div class="shop-header mb-4">
+  <div class="row align-items-center g-3">
+    <div class="col-auto">
+      <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--accent));display:flex;align-items:center;justify-content:center;font-size:1.8rem;font-weight:700;color:#07080d">
+        {{ seller.name[0].upper() }}
+      </div>
+    </div>
+    <div class="col">
+      <h1 class="mb-1">{{ seller.name }}'s Shop</h1>
+      <div class="d-flex gap-3 flex-wrap">
+        <span class="small-muted"><strong style="color:var(--text)">{{ stats.products }}</strong> Products</span>
+        {% if stats.avg_rating > 0 %}
+        <span class="small-muted"><span class="star">★</span> <strong style="color:var(--text)">{{ "%.1f"|format(stats.avg_rating) }}</strong> Rating</span>
+        {% endif %}
+        <span class="small-muted"><strong style="color:var(--text)">{{ stats.total_sales }}</strong> Sales</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if products %}
+<div class="row g-3">
+  {% for p in products %}
+  <div class="col-6 col-md-3">
+    <a href="/p/{{ p.id }}" class="text-decoration-none">
+      <div class="card prod-card p-0 overflow-hidden">
+        <div style="position:relative">
+          <img src="{{ p.image_url or url_for('static',filename='placeholder.png') }}" alt="{{ p.title }}" class="prod-img" style="height:200px;border-radius:0" loading="lazy">
+          {% if p.mrp and p.mrp > p.price %}
+          <span style="position:absolute;top:8px;left:8px;background:var(--danger);color:#fff;font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:999px">{{ "%.0f"|format(((p.mrp-p.price)/p.mrp)*100) }}% OFF</span>
+          {% endif %}
+        </div>
+        <div class="p-3">
+          <div class="small-muted" style="font-size:0.72rem;text-transform:uppercase">{{ p.category }}</div>
+          <div class="prod-title mt-1">{{ p.title[:50] }}{% if p.title|length>50 %}…{% endif %}</div>
+          <div class="d-flex align-items-baseline gap-2 mt-2">
+            <span class="prod-price">₹{{ "%.0f"|format(p.price) }}</span>
+            {% if p.mrp and p.mrp > p.price %}<span class="prod-mrp">₹{{ "%.0f"|format(p.mrp) }}</span>{% endif %}
+          </div>
+          {% if p.avg_rating %}
+          <div class="rating-line mt-1"><span class="star" style="font-size:0.75rem">★</span> <span style="font-size:0.78rem">{{ "%.1f"|format(p.avg_rating) }}</span></div>
+          {% endif %}
+        </div>
+      </div>
+    </a>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty text-center">
+  <div style="font-size:2.5rem;margin-bottom:12px">📦</div>
+  <h3>Koi products nahi abhi</h3>
+  <p class="small-muted">Is seller ne abhi tak koi product list nahi kiya.</p>
+</div>
+{% endif %}
+{% endblock %}

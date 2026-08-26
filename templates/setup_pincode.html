@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center mt-4">
+  <div class="col-md-5 col-lg-4">
+    <div class="text-center mb-4">
+      <span class="section-label">Almost Done!</span>
+      <h1 class="mb-1">📍 Apna Pincode Daalo</h1>
+      <p class="small-muted">Taaki hum aapko sahi delivery charge dikha sakein</p>
+    </div>
+    <div class="card p-4">
+      <form method="post" id="pincode-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-3">
+          <label class="form-label fw-semibold">Pincode</label>
+          <input class="form-control form-control-lg text-center fw-bold"
+                 id="pincode-input"
+                 style="letter-spacing:0.3rem; font-size:1.3rem"
+                 type="text" name="pincode"
+                 maxlength="6" placeholder="_ _ _ _ _ _"
+                 inputmode="numeric" pattern="\d{6}" autofocus>
+          <div class="form-text text-center mt-1">
+            Aapke area ka 6-digit pincode
+          </div>
+        </div>
+
+        <div class="alert alert-info py-2 mb-3" style="font-size:0.82rem;">
+          ℹ️ Isse hum dikhate hain:<br>
+          📦 <strong>Same state seller</strong> → ₹75 delivery<br>
+          🚚 <strong>Dusre state seller</strong> → ₹95 delivery
+        </div>
+
+        <button class="btn btn-primary w-100 py-2 mb-2" type="submit">
+          ✅ Save Karo & Continue
+        </button>
+      </form>
+
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="pincode" value="">
+        <button class="btn btn-outline-secondary w-100 py-2" type="submit">
+          Skip (baad mein profile se update karna)
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

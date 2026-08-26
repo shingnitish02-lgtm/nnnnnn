@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: xoptime-buyer
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn wsgi:app --workers 2 --bind 0.0.0.0:$PORT
+    envVars:
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_DEBUG
+        value: false
+      - key: PLATFORM_COMMISSION
+        value: "10"
+      - key: SELLER_APP_URL
+        value: https://xoptime-seller.onrender.com   # apna actual seller app URL daalo
+      # ── Baaki env vars Render dashboard se manually set karo (SAME values jo seller app mein hain) ──
+      # DATABASE_URL  (Neon se copy karo — SAME DB jo seller app use kar raha hai)
+      # WHATSAPP_BOT_URL           (xoptime-whatsapp-bot service ka public URL)
+      # WHATSAPP_BOT_INTERNAL_KEY  (bot service ke INTERNAL_SECRET jaisa hi)
+      # RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET, RAZORPAY_ACCOUNT_NUMBER
+      # RAZORPAY_WEBHOOK_SECRET  (Razorpay Dashboard > Webhooks se lo)
+      # SHIPROCKET_EMAIL, SHIPROCKET_PASSWORD, SHIPROCKET_CHANNEL_ID
+      # SHIPROCKET_WEBHOOK_TOKEN
+      # CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET
+      # SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS
+      # COMPANY_NAME, COMPANY_GSTIN, COMPANY_ADDRESS

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+  <div><span class="section-label">Reseller</span><h1 class="mb-0">Products Browse Karo</h1></div>
+  <a href="/reseller/dashboard" class="btn btn-sm btn-outline-light">← My Catalog</a>
+</div>
+
+<div class="card p-3 mb-4">
+  <form method="get" class="row g-2">
+    <div class="col-md-6"><input class="form-control input" name="q" placeholder="Search products..." value="{{ request.args.get('q','') }}"></div>
+    <div class="col-md-4">
+      <select class="form-select" name="category">
+        <option value="">All Categories</option>
+        {% for cat in categories %}<option value="{{ cat }}" {% if request.args.get('category')==cat %}selected{% endif %}>{{ cat }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="col-md-2 d-grid"><button class="btn btn-primary" type="submit">Filter</button></div>
+  </form>
+</div>
+
+<div class="row g-3">
+  {% for p in products %}
+  <div class="col-6 col-md-4 col-lg-3">
+    <div class="card prod-card p-0 overflow-hidden {% if p.id in in_catalog %}border-success{% endif %}">
+      <div style="position:relative">
+        <img src="{{ p.image_url or url_for('static',filename='placeholder.png') }}" class="prod-img" style="height:180px;border-radius:0" loading="lazy" alt="{{ p.title }}">
+        {% if p.id in in_catalog %}<span style="position:absolute;top:8px;left:8px;background:var(--success);color:#07080d;font-size:0.68rem;font-weight:700;padding:3px 8px;border-radius:999px">✓ In Catalog</span>{% endif %}
+      </div>
+      <div class="p-3">
+        <div class="small-muted" style="font-size:0.72rem;text-transform:uppercase">{{ p.category }}</div>
+        <div class="prod-title mt-1" style="font-size:0.85rem">{{ p.title[:45] }}{% if p.title|length>45 %}...{% endif %}</div>
+        <div class="d-flex align-items-baseline gap-2 mt-1">
+          <span class="prod-price" style="font-size:1rem">Rs.{{ "%.0f"|format(p.price) }}</span>
+          {% if p.mrp and p.mrp > p.price %}<span class="prod-mrp">Rs.{{ "%.0f"|format(p.mrp) }}</span>{% endif %}
+        </div>
+        {% if p.id not in in_catalog %}
+        <form method="post" action="/reseller/catalog/add/{{ p.id }}" class="mt-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <div class="d-flex gap-1 mb-2">
+            <input class="form-control input" type="number" name="margin" placeholder="Margin Rs." min="0" step="1" style="font-size:0.78rem">
+          </div>
+          <button class="btn btn-sm btn-primary w-100" type="submit" style="font-size:0.78rem">+ Add to Catalog</button>
+        </form>
+        {% else %}
+        <div class="mt-2">
+          <form method="post" action="/reseller/catalog/remove/{{ p.id }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-sm btn-danger w-100" type="submit" style="font-size:0.78rem">Remove</button>
+          </form>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+  {% if not products %}<div class="col-12"><div class="empty"><p class="small-muted mb-0">Koi products nahi mili. Search aur filter change karo.</p></div></div>{% endif %}
+</div>
+{% endblock %}

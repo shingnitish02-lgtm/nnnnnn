@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-3">
+  <div>
+    <h1 class="h4 fw-bold mb-1">Ticket #{{ tk.id }}</h1>
+    <div class="small-muted">{{ tk.subject }}</div>
+  </div>
+  <span class="badge {% if tk.status in ['Resolved','Closed'] %}bg-success{% elif tk.status=='Pending' %}bg-warning text-dark{% else %}bg-info{% endif %}">{{ tk.status }}</span>
+</div>
+
+<div class="card p-3 mb-3">
+  {% for m in msgs %}
+    <div class="mb-3">
+      <div class="small text-muted">{{ m.sender_role|upper }} • {{ m.created_at }}</div>
+      <div>{{ m.body }}</div>
+    </div>
+  {% endfor %}
+</div>
+
+<div class="card p-3">
+  <form method="post">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="form-label">Reply</label>
+    <textarea class="form-control input" rows="4" name="body" required></textarea>
+    <div class="mt-2 d-flex gap-2">
+      <button class="btn btn-primary">Send</button>
+      <a class="btn btn-outline" href="/support">Back</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

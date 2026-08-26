@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="row g-4">
+  <!-- Sidebar Filters -->
+  <div class="col-lg-3 d-none d-lg-block">
+    <div class="card p-3" style="position:sticky;top:90px">
+      <div class="fw-semibold mb-3" style="font-size:0.95rem">🔍 Filters</div>
+      <form method="get" action="/search" id="filterForm">
+        {% if request.args.get('q') %}
+        <input type="hidden" name="q" value="{{ request.args.get('q') }}">
+        {% endif %}
+
+        <!-- Category -->
+        <div class="mb-3">
+          <div class="form-section-head">Category</div>
+          <div class="d-flex flex-column gap-1">
+            <a href="/search?q={{ request.args.get('q','') }}&sort={{ request.args.get('sort','') }}&min={{ request.args.get('min','') }}&max={{ request.args.get('max','') }}"
+               class="small-muted text-decoration-none {% if not request.args.get('category') %}text-gold{% endif %}" style="font-size:0.85rem;padding:3px 0">All Categories</a>
+            {% for cat in categories %}
+            <a href="/search?q={{ request.args.get('q','') }}&category={{ cat }}&sort={{ request.args.get('sort','') }}&min={{ request.args.get('min','') }}&max={{ request.args.get('max','') }}"
+               class="small-muted text-decoration-none {% if request.args.get('category')==cat %}text-gold{% endif %}" style="font-size:0.85rem;padding:3px 0">
+              {% if request.args.get('category')==cat %}▶ {% endif %}{{ cat }}
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Brand Filter (NEW) -->
+        {% if brands %}
+        <div class="mb-3">
+          <div class="form-section-head">Brand</div>
+          <div class="d-flex flex-column gap-1" style="max-height:140px;overflow-y:auto">
+            <a href="/search?q={{ request.args.get('q','') }}&category={{ request.args.get('category','') }}&sort={{ request.args.get('sort','') }}&min={{ request.args.get('min','') }}&max={{ request.args.get('max','') }}"
+               class="small-muted text-decoration-none {% if not request.args.get('brand') %}text-gold{% endif %}" style="font-size:0.85rem;padding:3px 0">All Brands</a>
+            {% for b in brands %}
+            <a href="/search?q={{ request.args.get('q','') }}&category={{ request.args.get('category','') }}&brand={{ b }}&sort={{ request.args.get('sort','') }}&min={{ request.args.get('min','') }}&max={{ request.args.get('max','') }}"
+               class="small-muted text-decoration-none {% if request.args.get('brand')==b %}text-gold{% endif %}" style="font-size:0.85rem;padding:3px 0">
+              {% if request.args.get('brand')==b %}▶ {% endif %}{{ b }}
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+
+        <!-- Price Range Slider (NEW) -->
+        <div class="mb-3">
+          <div class="form-section-head">Price Range</div>
+          <div style="padding:0 4px">
+            <div class="d-flex justify-content-between mb-1">
+              <span class="small-muted" style="font-size:0.8rem">₹<span id="minLabel">{{ request.args.get('min','0') or '0' }}</span></span>
+              <span class="small-muted" style="font-size:0.8rem">₹<span id="maxLabel">{{ request.args.get('max','10000') or '10000' }}</span></span>
+            </div>
+            <input type="range" name="min" id="priceMin" min="0" max="10000" step="100"
+                   value="{{ request.args.get('min','0') or '0' }}"
+                   oninput="document.getElementById('minLabel').textContent=this.value" style="width:100%">
+            <input type="range" name="max" id="priceMax" min="0" max="10000" step="100"
+                   value="{{ request.args.get('max','10000') or '10000' }}"
+                   oninput="document.getElementById('maxLabel').textContent=this.value" style="width:100%">
+          </div>
+        </div>
+
+        <!-- Sort -->
+        <div class="mb-3">
+          <div class="form-section-head">Sort By</div>
+          <select class="form-select input" name="sort" onchange="this.form.submit()">
+            <option value="" {% if not request.args.get('sort') %}selected{% endif %}>Relevance</option>
+            <option value="price_asc"  {% if request.args.get('sort')=='price_asc' %}selected{% endif %}>Price: Low to High</option>
+            <option value="price_desc" {% if request.args.get('sort')=='price_desc' %}selected{% endif %}>Price: High to Low</option>
+            <option value="newest"     {% if request.args.get('sort')=='newest' %}selected{% endif %}>Newest First</option>
+            <option value="rating"     {% if request.args.get('sort')=='rating' %}selected{% endif %}>Best Rated</option>
+          </select>
+        </div>
+
+        <!-- Rating Filter -->
+        <div class="mb-3">
+          <div class="form-section-head">Min Rating</div>
+          <div class="d-flex flex-column gap-1">
+            {% for r in [4,3,2,1] %}
+            <a href="/search?q={{ request.args.get('q','') }}&category={{ request.args.get('category','') }}&brand={{ request.args.get('brand','') }}&sort={{ request.args.get('sort','') }}&min={{ request.args.get('min','') }}&max={{ request.args.get('max','') }}&rating={{ r }}"
+               class="small-muted text-decoration-none {% if request.args.get('rating','')==(r|string) %}text-gold{% endif %}" style="font-size:0.85rem;padding:3px 0">
+              {% for i in range(r) %}★{% endfor %}{% for i in range(5-r) %}☆{% endfor %} & above
+            </a>
+            {% endfor %}
+          </div>
+        </div>
+
+        <button class="btn btn-primary w-100 btn-sm" type="submit">Apply Filters</button>
+        <a href="/search{% if request.args.get('q') %}?q={{ request.args.get('q') }}{% endif %}" class="btn btn-outline-light w-100 btn-sm mt-2">Clear Filters</a>
+      </form>
+    </div>
+  </div>
+
+  <!-- Mobile filter bar -->
+  <div class="col-12 d-lg-none">
+    <div class="d-flex gap-2 overflow-auto pb-1" style="white-space:nowrap">
+      {% for cat in categories %}
+      <a href="/search?q={{ request.args.get('q','') }}&category={{ cat }}"
+         class="btn btn-sm {% if request.args.get('category')==cat %}btn-primary{% else %}btn-outline-light{% endif %}" style="flex-shrink:0">{{ cat }}</a>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="col-lg-9">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <div>
+        {% if request.args.get('q') %}
+          <span class="section-label">Search Results</span>
+          <h1 style="font-size:1.4rem" class="mb-0">Results for "{{ request.args.get('q') }}"</h1>
+        {% elif request.args.get('category') %}
+          <span class="section-label">Category</span>
+          <h1 style="font-size:1.4rem" class="mb-0">{{ request.args.get('category') }}</h1>
+        {% else %}
+          <span class="section-label">All Products</span>
+          <h1 style="font-size:1.4rem" class="mb-0">Browse Everything</h1>
+        {% endif %}
+        <div class="small-muted mt-1">{{ total }} products found{% if request.args.get('brand') %} · Brand: <strong>{{ request.args.get('brand') }}</strong>{% endif %}</div>
+      </div>
+      <!-- Mobile sort -->
+      <div class="d-lg-none">
+        <select class="form-select form-select-sm" onchange="window.location='/search?'+new URLSearchParams({...Object.fromEntries(new URLSearchParams(window.location.search)),...{sort:this.value}}).toString()">
+          <option value="">Sort</option>
+          <option value="price_asc">Price ↑</option>
+          <option value="price_desc">Price ↓</option>
+          <option value="newest">Newest</option>
+          <option value="rating">Top Rated</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Active filters chips -->
+    {% if request.args.get('category') or request.args.get('brand') or request.args.get('min') or request.args.get('max') or request.args.get('rating') %}
+    <div class="d-flex gap-2 flex-wrap mb-3">
+      {% if request.args.get('category') %}
+      <span class="badge-soft" style="font-size:0.78rem">📁 {{ request.args.get('category') }}
+        <a href="/search?q={{ request.args.get('q','') }}&sort={{ request.args.get('sort','') }}" style="color:var(--muted);margin-left:4px">✕</a>
+      </span>
+      {% endif %}
+      {% if request.args.get('brand') %}
+      <span class="badge-soft" style="font-size:0.78rem">🏷️ {{ request.args.get('brand') }}
+        <a href="/search?q={{ request.args.get('q','') }}&category={{ request.args.get('category','') }}&sort={{ request.args.get('sort','') }}" style="color:var(--muted);margin-left:4px">✕</a>
+      </span>
+      {% endif %}
+      {% if request.args.get('rating') %}
+      <span class="badge-soft" style="font-size:0.78rem">⭐ {{ request.args.get('rating') }}+ stars
+        <a href="/search?q={{ request.args.get('q','') }}&category={{ request.args.get('category','') }}&brand={{ request.args.get('brand','') }}&sort={{ request.args.get('sort','') }}" style="color:var(--muted);margin-left:4px">✕</a>
+      </span>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% if products %}
+    <div class="row g-3">
+      {% for p in products %}
+      <div class="col-6 col-md-4">
+        <a href="/p/{{ p.id }}" class="text-decoration-none">
+          <div class="card prod-card p-0 overflow-hidden h-100">
+            <div style="position:relative">
+              <img src="{{ p.image_url or url_for('static',filename='placeholder.png') }}" alt="{{ p.title }}" class="prod-img" style="height:190px;border-radius:0" loading="lazy">
+              {% if p.mrp and p.mrp > p.price %}
+              <span style="position:absolute;top:8px;left:8px;background:var(--danger);color:#fff;font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:999px">
+                {{ "%.0f"|format(((p.mrp-p.price)/p.mrp)*100) }}% OFF
+              </span>
+              {% endif %}
+              {% if p.trending %}<span style="position:absolute;bottom:8px;left:8px;background:rgba(244,114,182,0.9);color:#fff;font-size:0.65rem;font-weight:700;padding:2px 6px;border-radius:999px">🔥</span>{% endif %}
+              {% if p.stock == 0 %}
+              <div style="position:absolute;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center">
+                <span class="badge-danger">Out of Stock</span>
+              </div>
+              {% endif %}
+            </div>
+            <div class="p-3 d-flex flex-column" style="flex:1">
+              <div class="small-muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.06em">{{ p.category }}</div>
+              {% if p.brand %}<div class="small-muted" style="font-size:0.72rem">{{ p.brand }}</div>{% endif %}
+              <div class="prod-title mt-1" style="flex:1">{{ p.title[:55] }}{% if p.title|length>55 %}…{% endif %}</div>
+              <div class="d-flex align-items-baseline gap-2 mt-2">
+                <span class="prod-price">₹{{ "%.0f"|format(p.price) }}</span>
+                {% if p.mrp and p.mrp > p.price %}<span class="prod-mrp">₹{{ "%.0f"|format(p.mrp) }}</span>{% endif %}
+              </div>
+              {% if p.avg_rating %}
+              <div class="rating-line mt-1">
+                <span class="star" style="font-size:0.75rem">★</span>
+                <span style="font-size:0.78rem"> {{ "%.1f"|format(p.avg_rating) }}</span>
+                <span class="small-muted" style="font-size:0.72rem">({{ p.review_count }})</span>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if total_pages > 1 %}
+    <div class="d-flex justify-content-center gap-1 mt-4 flex-wrap">
+      {% if page > 1 %}<a class="page-btn" href="/search?{{ query_string }}&page={{ page-1 }}">‹</a>{% endif %}
+      {% for pg in range(1, total_pages+1) %}
+        {% if pg == page %}<span class="page-btn active">{{ pg }}</span>
+        {% elif pg <= 2 or pg >= total_pages-1 or (pg >= page-1 and pg <= page+1) %}<a class="page-btn" href="/search?{{ query_string }}&page={{ pg }}">{{ pg }}</a>
+        {% elif pg == 3 or pg == total_pages-2 %}<span class="page-btn" style="pointer-events:none;opacity:0.4">…</span>
+        {% endif %}
+      {% endfor %}
+      {% if page < total_pages %}<a class="page-btn" href="/search?{{ query_string }}&page={{ page+1 }}">›</a>{% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+    <div class="empty">
+      <div style="font-size:3rem;margin-bottom:12px">🔍</div>
+      <h3>No products found</h3>
+      <p class="small-muted">Try different keywords or remove some filters.</p>
+      <a href="/search" class="btn btn-primary mt-2">Clear Filters</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

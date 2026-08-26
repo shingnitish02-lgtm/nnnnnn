@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7">
+    <div class="text-center mb-4">
+      <span class="section-label">Order Tracking</span>
+      <h1 class="mb-1">Apna Order Track Karo</h1>
+      <p class="small-muted">Login ki zaroorat nahi — sirf Order ID aur phone number daalo</p>
+    </div>
+
+    <div class="card p-4 mb-4">
+      <form method="post">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="row g-3">
+          <div class="col-md-6">
+            <label class="form-label">Order ID</label>
+            <input class="form-control input" name="order_id" placeholder="ORD-XXXXXXXX" required
+                   value="{{ request.form.get('order_id','') }}" style="text-transform:uppercase">
+            <div class="small-muted mt-1" style="font-size:0.78rem">Order confirmation mein milega</div>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Phone Number</label>
+            <input class="form-control input" name="phone" placeholder="10-digit mobile" required
+                   value="{{ request.form.get('phone','') }}" maxlength="10">
+            <div class="small-muted mt-1" style="font-size:0.78rem">Checkout pe diya hua number</div>
+          </div>
+          <div class="col-12 d-grid">
+            <button class="btn btn-primary">🔍 Track Order</button>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    {% if result %}
+    {% set o = result.order %}
+    {% set items = result.items %}
+    {% set tracking = result.tracking %}
+
+    <!-- Order Status -->
+    <div class="card p-4 mb-3">
+      <div class="d-flex justify-content-between align-items-start mb-3">
+        <div>
+          <div class="small-muted">Order ID</div>
+          <div class="fw-bold" style="font-size:1.1rem">#{{ o.public_id }}</div>
+          <div class="small-muted" style="font-size:0.82rem">{{ o.created_at.strftime('%Y-%m-%d') if o.created_at else '' }}</div>
+        </div>
+        <div class="text-end">
+          {% if o.status == 'pending' %}<span class="badge-soft" style="color:#f59e0b">⏳ Pending</span>
+          {% elif o.status == 'accepted' %}<span class="badge-soft" style="color:var(--accent)">✅ Accepted</span>
+          {% elif o.status == 'ReadyToShip' %}<span class="badge-soft" style="color:#60a5fa">📦 Ready to Ship</span>
+          {% elif o.status == 'Shipped' %}<span class="badge-soft" style="color:#a78bfa">🚚 Shipped</span>
+          {% elif o.status in ('Delivered','delivered') %}<span class="badge-soft" style="color:var(--success)">✓ Delivered</span>
+          {% elif o.status == 'cancelled' %}<span class="badge-soft" style="color:var(--rose)">✗ Cancelled</span>
+          {% else %}<span class="badge-soft">{{ o.status }}</span>{% endif %}
+        </div>
+      </div>
+
+      <!-- Progress -->
+      {% if o.status not in ('cancelled',) %}
+      {% set step_map = {'pending':0,'confirmed':0,'accepted':1,'ReadyToShip':2,'Shipped':3,'out_for_delivery':3,'Delivered':4,'delivered':4} %}
+      {% set cur = step_map.get(o.status, 0) %}
+      <div class="d-flex justify-content-between align-items-center mb-3" style="position:relative">
+        <div style="position:absolute;top:20px;left:10%;right:10%;height:2px;background:var(--border2);z-index:0"></div>
+        <div style="position:absolute;top:20px;left:10%;height:2px;background:var(--success);z-index:1;width:{{ [0,25,50,75,100][cur] }}%"></div>
+        {% for i, label, icon in [(0,'Placed','📋'),(1,'Accepted','✅'),(2,'Packed','📦'),(3,'Shipped','🚚'),(4,'Delivered','🎉')] %}
+        <div class="text-center" style="z-index:2;flex:1">
+          <div style="width:36px;height:36px;border-radius:50%;margin:0 auto 6px;display:flex;align-items:center;justify-content:center;font-size:1rem;
+            {% if i<=cur %}background:rgba(52,211,153,0.15);border:2px solid var(--success){% else %}background:var(--card);border:2px solid var(--border2){% endif %}">{{ icon }}</div>
+          <div style="font-size:0.72rem;{% if i<=cur %}color:var(--text);font-weight:500{% else %}color:var(--muted){% endif %}">{{ label }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- Tracking details -->
+      {% if o.awb %}
+      <div class="row g-2 mt-2">
+        <div class="col-6"><div class="small-muted">AWB</div><div class="fw-semibold">{{ o.awb }}</div></div>
+        <div class="col-6"><div class="small-muted">Courier</div><div class="fw-semibold">{{ o.courier_name or '—' }}</div></div>
+        {% if o.tracking_url %}<div class="col-12 mt-2"><a href="{{ o.tracking_url }}" target="_blank" class="btn btn-sm btn-outline-light">🔗 Courier site pe track karo</a></div>{% endif %}
+      </div>
+      {% if tracking and tracking.history %}
+      <div class="mt-3" style="border-left:2px solid var(--border2);padding-left:14px;margin-left:4px">
+        {% for ev in tracking.history[:5] %}
+        <div class="mb-2">
+          <div class="fw-semibold" style="font-size:0.85rem">{{ ev.get('activity','') }}</div>
+          <div class="small-muted" style="font-size:0.78rem">{{ ev.get('date','') }}{% if ev.get('location') %} · {{ ev.get('location') }}{% endif %}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endif %}
+    </div>
+
+    <!-- Items -->
+    <div class="card p-4">
+      <div class="fw-semibold mb-3">Order Items</div>
+      {% for it in items %}
+      <div class="d-flex justify-content-between mb-2 pb-2" style="border-bottom:1px solid var(--border2)">
+        <div>
+          <div class="fw-semibold" style="font-size:0.9rem">{{ it.title }}</div>
+          <div class="small-muted" style="font-size:0.78rem">Qty: {{ it.qty }}{% if it.size %} · {{ it.size }}{% endif %}{% if it.color %} · {{ it.color }}{% endif %}</div>
+        </div>
+        <div class="fw-bold">₹{{ "%.0f"|format(it.line_total) }}</div>
+      </div>
+      {% endfor %}
+      <div class="d-flex justify-content-between fw-bold mt-2">
+        <div>Total</div>
+        <div>₹{{ "%.2f"|format(o.total_amount) }}</div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="text-center mt-4">
+      <a href="/login" class="small-muted">Login karke full order history dekho →</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

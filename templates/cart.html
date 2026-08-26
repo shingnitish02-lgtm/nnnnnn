@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <div><span class="section-label">Shopping</span><h1 class="mb-0">My Cart</h1></div>
+  <a href="/" class="btn btn-sm btn-outline-light">← Continue Shopping</a>
+</div>
+
+{% if summary.unavailable %}
+<div class="alert alert-warning mb-3" style="border-radius:12px">
+  ⚠️ Yeh items cart se hata di gayi hain kyunki abhi available nahi hain:
+  <strong>{{ summary.unavailable | join(', ') }}</strong>
+</div>
+{% endif %}
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    {% if items %}
+    <div class="vstack gap-3">
+      {% for it in items %}
+      <div class="card p-3">
+        <div class="d-flex gap-3 align-items-start">
+          <a href="/p/{{ it.id }}">
+            <img src="{{ it.image_url or url_for('static',filename='placeholder.png') }}"
+                 style="width:90px;height:90px;object-fit:cover;border-radius:12px;border:1px solid var(--border);flex-shrink:0" alt="{{ it.title }}">
+          </a>
+          <div style="flex:1;min-width:0">
+            <a href="/p/{{ it.id }}" class="text-decoration-none">
+              <div class="fw-semibold" style="color:var(--text);font-size:0.95rem;line-height:1.3">{{ it.title[:70] }}{% if it.title|length>70 %}…{% endif %}</div>
+            </a>
+            <div class="small-muted mt-1" style="font-size:0.8rem">
+              {% if it.size %}Size: <strong>{{ it.size }}</strong>{% endif %}
+              {% if it.color %}{% if it.size %} · {% endif %}Color: <strong>{{ it.color }}</strong>{% endif %}
+              {% if it.stock <= 5 and it.stock > 0 %} · <span style="color:var(--danger)">Only {{ it.stock }} left!</span>{% endif %}
+            </div>
+            <div class="d-flex align-items-center gap-3 mt-2">
+              <span class="prod-price" style="font-size:1.1rem">₹{{ "%.0f"|format(it.price) }}</span>
+              {% if it.mrp and it.mrp > it.price %}
+              <span class="prod-mrp">₹{{ "%.0f"|format(it.mrp) }}</span>
+              <span style="color:var(--success);font-size:0.78rem">{{ "%.0f"|format(((it.mrp-it.price)/it.mrp)*100) }}% off</span>
+              {% endif %}
+            </div>
+            <!-- Inline qty controls + actions -->
+            <div class="d-flex align-items-center gap-2 mt-3 flex-wrap">
+              <div class="d-flex align-items-center" style="border:1px solid var(--border2);border-radius:10px;overflow:hidden">
+                <button class="btn btn-sm" style="border:none;border-radius:0;padding:6px 12px;background:transparent;color:var(--text)"
+                        onclick="changeQty({{ it.cart_id }}, {{ it.qty - 1 }}, {{ it.stock }})">−</button>
+                <span id="qty_{{ it.cart_id }}" style="min-width:32px;text-align:center;font-weight:600;font-size:0.9rem">{{ it.qty }}</span>
+                <button class="btn btn-sm" style="border:none;border-radius:0;padding:6px 12px;background:transparent;color:var(--text)"
+                        onclick="changeQty({{ it.cart_id }}, {{ it.qty + 1 }}, {{ it.stock }})">+</button>
+              </div>
+              <span class="fw-semibold" style="color:var(--gold2)">₹{{ "%.0f"|format(it.line_total) }}</span>
+              <div class="ms-auto d-flex gap-2">
+                <form method="post" action="/wishlist/toggle/{{ it.id }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-sm btn-outline-light" style="font-size:0.78rem">♡ Wishlist</button>
+                </form>
+                <a class="btn btn-sm btn-outline-light" href="/cart/remove/{{ it.cart_id }}" style="font-size:0.78rem;color:var(--danger);border-color:rgba(248,113,113,0.3)">🗑 Remove</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty text-center">
+      <div style="font-size:3rem;margin-bottom:12px">🛒</div>
+      <h3>Cart khali hai</h3>
+      <p class="small-muted mb-3">Kuch products add karo aur yahan aayenge.</p>
+      <a href="/" class="btn btn-primary">Shop Now</a>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card p-4 mb-3" style="position:sticky;top:90px">
+      <div class="fw-semibold mb-3" style="font-size:1rem">Order Summary</div>
+      <div class="d-flex justify-content-between mb-2"><div class="small-muted">Subtotal ({{ items|length }} items)</div><div>₹{{ "%.2f"|format(summary.subtotal) }}</div></div>
+      <div class="d-flex justify-content-between mb-2"><div class="small-muted">GST</div><div>₹{{ "%.2f"|format(summary.gst_total) }}</div></div>
+      <div class="hr my-2"></div>
+      <div class="d-flex justify-content-between mb-3"><div class="fw-semibold">Total</div><div class="fw-bold" style="font-size:1.2rem;color:var(--gold2)">₹{{ "%.2f"|format(summary.total) }}</div></div>
+      <div class="d-grid gap-2">
+        {% if items %}
+        <a class="btn btn-primary py-2" href="/checkout" style="font-size:1rem">Proceed to Checkout →</a>
+        {% else %}
+        <a class="btn btn-outline-light" href="/">Browse Products</a>
+        {% endif %}
+      </div>
+      <div class="d-flex justify-content-center gap-3 mt-3">
+        <span class="small-muted" style="font-size:0.75rem">🔒 Secure Checkout</span>
+        <span class="small-muted" style="font-size:0.75rem">🔄 7-day Returns</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden forms for qty update -->
+<form id="qtyForm" method="post" style="display:none">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+  <input type="hidden" name="qty" id="qtyFormVal">
+</form>
+
+{% block scripts %}
+<script>
+function changeQty(cartId, newQty, maxStock) {
+  if (newQty < 1) { return removeItem(cartId); }
+  if (newQty > maxStock) { alert('Sirf ' + maxStock + ' available hain!'); return; }
+  const form = document.getElementById('qtyForm');
+  form.action = '/cart/update/' + cartId;
+  document.getElementById('qtyFormVal').value = newQty;
+  form.submit();
+}
+function removeItem(cartId) {
+  if (confirm('Remove this item?')) window.location = '/cart/remove/' + cartId;
+}
+</script>
+{% endblock %}
+{% endblock %}
