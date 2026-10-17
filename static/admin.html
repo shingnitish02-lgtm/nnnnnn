@@ -1,0 +1,27 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>Xoptime Admin</title>
+<style>body{font:15px/1.4 system-ui,sans-serif;margin:0;background:#f6f7fb;color:#0b2a6b}header{display:flex;gap:8px;align-items:center;padding:12px 16px;background:#0b2a6b;color:#fff;flex-wrap:wrap}header b{flex:1}
+button,select,input{font:inherit;padding:8px 10px;border-radius:8px;border:1px solid #c9cde0}button{background:#e11d2e;color:#fff;border:0;cursor:pointer;font-weight:700}button.g{background:#0b2a6b}
+.w{max-width:900px;margin:auto;padding:12px}.c{background:#fff;border:1px solid #dfe2ee;border-radius:12px;padding:12px;margin-bottom:12px}.h{display:flex;justify-content:space-between;gap:8px;font-weight:700;flex-wrap:wrap}
+.m{color:#5d6584;font-size:13px}.t{display:inline-block;background:#eef;border-radius:99px;padding:2px 10px;font-size:12px;font-weight:700}.r{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}.i{display:flex;gap:8px;align-items:center;margin:6px 0}.i img{width:40px;height:40px;object-fit:cover;border-radius:6px}</style></head><body>
+<header><b>Xoptime orders</b><select id="f"><option value="">All</option><option>placed</option><option>confirmed</option><option>shipped</option><option>out_for_delivery</option><option>delivered</option><option>return_requested</option><option>cancelled</option><option>returned</option><option>refunded</option></select><button class="g" id="rf">Refresh</button><button class="g" id="sy">Sync products</button></header>
+<div class="w" id="l">Loading...</div>
+<script>
+var K=sessionStorage.getItem("xk")||"";
+function esc(t){return String(t==null?"":t).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]})}
+function api(u,m,b){return fetch(u,{method:m||"GET",headers:{"Content-Type":"application/json","X-Admin-Key":K},body:b?JSON.stringify(b):undefined}).then(function(r){return r.json().catch(function(){return{}}).then(function(j){if(!r.ok){if(r.status===403){sessionStorage.removeItem("xk");K=""}throw new Error(j.error||r.status)}return j})})}
+var O=[];
+function draw(){var f=document.getElementById("f").value,L=O.filter(function(o){return!f||o.status===f});
+document.getElementById("l").innerHTML=L.length?L.map(function(o){var a=o.address||{};
+return '<div class="c"><div class="h"><span>#'+o.id+' <span class="t">'+esc(o.status)+'</span></span><span>₹'+o.total+' · '+esc(o.pay_method)+' · pay: '+esc(o.pay_status)+'</span></div><div class="m">'+esc(o.created_at)+(o.shipped_at?' · shipped '+esc(o.shipped_at):'')+(o.delivered_at?' · delivered '+esc(o.delivered_at):'')+'</div>'
++o.items.map(function(i){return '<div class="i">'+(i.im?'<img src="'+esc(i.im)+'" alt="">':'')+'<span>'+esc(i.n)+' × '+i.q+' — ₹'+i.p*i.q+'</span></div>'}).join("")
++'<div><b>'+esc(a.n||o.profile.n||"")+'</b> · <a href="tel:'+esc(o.phone)+'">'+esc(o.phone)+'</a> · <a href="https://wa.me/91'+esc(o.phone)+'" target="_blank">WhatsApp</a><br>'+esc(a.l||"")+', '+esc(a.c||"")+' - '+esc(a.z||"")+(a.p?' · '+esc(a.p):'')+'</div>'
++(o.return_reason?'<div class="m">Return reason: '+esc(o.return_reason)+'</div>':'')
++'<div class="r"><input placeholder="Tracking ID" value="'+esc(o.tracking||"")+'" id="t'+o.id+'">'+["confirmed","shipped","out_for_delivery","delivered","cancelled","returned","refunded"].map(function(s){return '<button class="'+(s===o.status?'g':'')+'" onclick="st('+o.id+',\''+s+'\')">'+s.replace(/_/g," ")+'</button>'}).join("")+'</div></div>'}).join(""):"No orders."}
+function load(){if(!K){K=prompt("Admin key");if(!K)return;sessionStorage.setItem("xk",K)}
+api("/admin/api/orders").then(function(r){O=r;draw()}).catch(function(e){document.getElementById("l").textContent="Error: "+e.message+" (reload and enter the key again)"})}
+function st(id,s){if(!confirm("Set order #"+id+" to "+s.replace(/_/g," ")+"? The customer gets a WhatsApp message."+(s==="cancelled"||s==="refunded"?" Online payments are refunded automatically.":"")))return;
+api("/admin/api/orders/"+id+"/status","POST",{status:s,tracking:document.getElementById("t"+id).value}).then(function(r){load();if(r.pay_status==="refund_pending")alert("Razorpay refund did not go through. Refund manually from the Razorpay dashboard.")}).catch(function(e){alert(e.message)})}
+document.getElementById("f").onchange=draw;document.getElementById("rf").onclick=load;
+document.getElementById("sy").onclick=function(){api("/admin/api/sync","POST").then(function(r){alert(r.ok?"Products synced":"Sync failed. Check SELLER_URL and SELLER_SYNC_KEY");}).catch(function(e){alert(e.message)})};
+load();
+</script></body></html>
