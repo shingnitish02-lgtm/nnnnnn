@@ -1,0 +1,54 @@
+services:
+  - type: web
+    name: xoptime
+    runtime: python
+    plan: starter            # free plan sleeps after 15 min idle: customers wait ~1 min. Use starter for a live shop.
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --workers 2 --bind 0.0.0.0:$PORT
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.3
+      - key: DATABASE_URL          # Neon connection string
+        sync: false
+      - key: ADMIN_KEY             # long secret for /admin
+        generateValue: true
+      - key: OTP_SECRET
+        generateValue: true
+      - key: SELLER_URL            # https://your-seller-site.onrender.com (no trailing slash)
+        sync: false
+      - key: SELLER_SYNC_KEY       # same value as BUYER_SYNC_KEY on the seller site
+        sync: false
+      - key: SELLER_DB_SCHEMA      # Shiprocket seller's schema in this Neon DB (default: seller)
+        sync: false
+      # ---- Second seller (self-ship site). Leave these out to run with the Shiprocket seller only ----
+      - key: SELLER2_URL           # https://your-selfship-seller.onrender.com (no trailing slash); leave empty if it shares this Neon DB
+        sync: false
+      - key: SELLER2_DB_SCHEMA     # only if the self-ship seller shares this Neon DB: its DB_SCHEMA value (must NOT be "seller")
+        sync: false
+      - key: SELLER2_SHIPPING_CHARGE   # shipping (Rs) added to self-ship products; default 0 = buyer sees the seller's selling price
+        sync: false
+      - key: SELLER2_SYNC_KEY      # same value as BUYER_SYNC_KEY on the self-ship seller. Must DIFFER from SELLER_SYNC_KEY
+        sync: false
+      - key: WHATSAPP_BOT_URL      # public https URL of your WhatsApp bot (same one the seller site uses)
+        sync: false
+      - key: WHATSAPP_BOT_KEY      # optional shared secret, sent as X-Bot-Key
+        sync: false
+      - key: ADMIN_WHATSAPP        # your own number: gets a message for every new order
+        sync: false
+      - key: RAZORPAY_KEY_ID       # use live keys (rzp_live_...) when you go live
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      - key: BUSINESS_NAME
+        sync: false
+      - key: BUSINESS_ADDRESS
+        sync: false
+      - key: BUSINESS_PHONE
+        sync: false
+      - key: BUSINESS_EMAIL
+        sync: false
+      - key: BUSINESS_GRIEVANCE    # Grievance Officer name
+        sync: false
