@@ -44,8 +44,11 @@ SELLER_WIRE_OFFSET = 1000  # the seller apps themselves always expect "buyer pid
 # Each seller gets its own buyer-side product id range so product ids from the two sites never collide.
 SELLERS = [{"key": "sr", "name": "Shiprocket seller", "url": SELLER_URL, "sync": SELLER_SYNC_KEY, "schema": SELLER_DB_SCHEMA, "offset": PID_OFFSET}]
 _url2, _schema2 = env("SELLER2_URL", "").rstrip("/"), env("SELLER2_DB_SCHEMA", "")
+_dburl2 = env("SELLER2_DATABASE_URL", "")      # self-ship seller's OWN Neon database (read-only use: products + shipping ids)
+if _dburl2 and not _schema2:
+    _schema2 = "seller"                        # selfship app's default DB_SCHEMA
 if _url2 or _schema2:
-    SELLERS.append({"key": "ss", "name": "Self-ship seller", "url": _url2, "schema": _schema2, "offset": 1000000,
+    SELLERS.append({"key": "ss", "name": "Self-ship seller", "url": _url2, "schema": _schema2, "dburl": _dburl2, "offset": 1000000,
                     "sync": env("SELLER2_SYNC_KEY", "") or _shared_key(DB_URL)})
 SELLER_BY_KEY = {s["key"]: s for s in SELLERS}
 DEFAULT_SELLER = "sr"
@@ -68,8 +71,11 @@ SELLER_WIRE_OFFSET = 1000  # the seller apps themselves always expect "buyer pid
 # Each seller gets its own buyer-side product id range so product ids from the two sites never collide.
 SELLERS = [{"key": "sr", "name": "Shiprocket seller", "url": SELLER_URL, "sync": SELLER_SYNC_KEY, "schema": SELLER_DB_SCHEMA, "offset": PID_OFFSET}]
 _url2, _schema2 = env("SELLER2_URL", "").rstrip("/"), env("SELLER2_DB_SCHEMA", "")
+_dburl2 = env("SELLER2_DATABASE_URL", "")      # self-ship seller's OWN Neon database (read-only use: products + shipping ids)
+if _dburl2 and not _schema2:
+    _schema2 = "seller"                        # selfship app's default DB_SCHEMA
 if _url2 or _schema2:
-    SELLERS.append({"key": "ss", "name": "Self-ship seller", "url": _url2, "schema": _schema2, "offset": 1000000,
+    SELLERS.append({"key": "ss", "name": "Self-ship seller", "url": _url2, "schema": _schema2, "dburl": _dburl2, "offset": 1000000,
                     "sync": env("SELLER2_SYNC_KEY", "") or _shared_key(DB_URL)})
 SELLER_BY_KEY = {s["key"]: s for s in SELLERS}
 DEFAULT_SELLER = "sr"
@@ -225,12 +231,12 @@ def clean_img(u, base=None):
     return u if URL_RE.match(u) else None
 
 
-def items_from_db(schema):
+def items_from_db(schema, dburl=None):
     """Same Neon database: read the seller's approved, in-stock products straight from its schema."""
     sch = re.sub(r"[^a-zA-Z0-9_]", "", schema or "")
     if not sch:
         raise RuntimeError("no schema configured")
-    with db() as c:
+    with (psycopg.connect(dburl, row_factory=dict_row, autocommit=True) if dburl else db()) as c:
         rows = c.execute(f"SELECT * FROM {sch}.products WHERE approved=1 AND COALESCE(stock,0)>0 ORDER BY id").fetchall()
         imgs = {}
         for r in c.execute(f"SELECT product_id, url FROM {sch}.product_images ORDER BY product_id, sort_order, id").fetchall():
@@ -250,7 +256,7 @@ def items_from_db(schema):
 def fetch_items(sl):
     if sl["schema"]:
         try:
-            return items_from_db(sl["schema"])
+            return items_from_db(sl["schema"], sl.get("dburl"))
         except Exception as e:
             log.info("%s: schema '%s' not readable (%s), trying API", sl["key"], sl["schema"], e)
     if not (sl["url"] and sl["sync"]):
@@ -644,7 +650,7 @@ def seller_get(sl, path, timeout=25):
             return http(sl["url"] + path, headers={"X-Sync-Key": sl["sync"]}, method="GET", timeout=timeout)
         except Exception as e:
             last = e
-            if re.match(r"HTTP (429|502|503|504)\b", str(e)) and i < 2:
+            if re.match(r"HTTP (502|503|504)\b", str(e)) and i < 2:
                 time.sleep(1.5 * (i + 1))
                 continue
             raise
@@ -809,6 +815,7 @@ def announce_new(o):
 
 
 _ship_cache = {}
+_ship_fail = {}
 
 
 def ship_charges(pin):
@@ -824,13 +831,24 @@ def ship_charges(pin):
         if sl["key"] == "ss" and sl["schema"]:      # self-ship seller = flat charge: no need to call its API, read product ids from its schema
             try:
                 sch = re.sub(r"[^a-zA-Z0-9_]", "", sl["schema"])
-                with db() as c:
+                with (psycopg.connect(sl["dburl"], row_factory=dict_row, autocommit=True) if sl.get("dburl") else db()) as c:
                     ids = [r["id"] for r in c.execute(f"SELECT id FROM {sch}.products WHERE approved=1 AND COALESCE(stock,0)>0").fetchall()]
                 ch = {sl["offset"] + int(i): SELLER2_SHIPPING for i in ids}
             except Exception as e:
                 log.info("ss: flat shipping from schema failed (%s), trying API", e)
         if ch is None:
-            data = seller_get(sl, "/api/public/shipping-quote?pin=" + pin, timeout=25)
+            bad = _ship_fail.get(ck)
+            if bad and time.time() - bad < 20:           # seller just refused/failed: don't hammer it again
+                if hit:
+                    out.update(hit[1]); continue
+                raise RuntimeError("%s: shipping quote temporarily unavailable" % sl["name"])
+            try:
+                data = seller_get(sl, "/api/public/shipping-quote?pin=" + pin, timeout=25)
+            except Exception:
+                _ship_fail[ck] = time.time()
+                if hit:                                  # serve the last good (stale) quote instead of failing the page
+                    out.update(hit[1]); continue
+                raise
             ch = {sl["offset"] + int(k): (int(v) if v is not None else None) for k, v in (data.get("charges") or {}).items()}
             if sl["key"] == "ss":                   # self-ship: never add the seller's own flat charge, use SELLER2_SHIPPING (default 0)
                 ch = {k: (SELLER2_SHIPPING if v is not None else None) for k, v in ch.items()}

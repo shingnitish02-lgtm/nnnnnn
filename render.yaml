@@ -28,6 +28,8 @@ services:
         sync: false
       - key: SELLER2_SHIPPING_CHARGE   # shipping (Rs) added to self-ship products; default 0 = buyer sees the seller's selling price
         sync: false
+      - key: SELLER2_DATABASE_URL  # self-ship seller's own Neon URL (its DATABASE_URL). Use this when its products live in a different database; schema defaults to "seller"
+        sync: false
       - key: SELLER2_SYNC_KEY      # same value as BUYER_SYNC_KEY on the self-ship seller. Must DIFFER from SELLER_SYNC_KEY
         sync: false
       - key: WHATSAPP_BOT_URL      # public https URL of your WhatsApp bot (same one the seller site uses)
