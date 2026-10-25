@@ -138,7 +138,7 @@ def init_db():
         c.execute("SELECT pg_advisory_unlock(7)")
     if not (SELLER_URL and SELLER_SYNC_KEY):
         log.info("SELLER_URL / SELLER_SYNC_KEY not set: products are read from the seller schema in this database; order hand-off to the seller needs both")
-    log.info("sellers configured: %s", ", ".join("%s(%s)" % (s["key"], s["url"] or s["schema"]) for s in SELLERS))
+    log.info("sellers configured: %s", ", ".join("%s(%s%s)" % (s["key"], s["url"] or "no-url", (" + DB schema=" + s["schema"] + (" OWN-DB" if s.get("dburl") else " shared-DB")) if s["schema"] else " API-only") for s in SELLERS))
     keys = [s["sync"] for s in SELLERS]
     if len(SELLERS) > 1 and len(set(keys)) < len(keys):
         log.warning("SELLER_SYNC_KEY and SELLER2_SYNC_KEY are the same: status updates from the two sellers cannot be told apart. "
