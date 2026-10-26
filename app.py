@@ -125,7 +125,9 @@ CREATE INDEX IF NOT EXISTS orders_rzp ON orders(rzp_order_id);
 
 
 def db():
-    return psycopg.connect(DB_URL, row_factory=dict_row, autocommit=True)
+    c = psycopg.connect(DB_URL, row_factory=dict_row, autocommit=True)
+    c.execute("SET search_path TO public")   # shared Neon (pooled) connections can carry a seller's search_path: always use our own tables
+    return c
 
 
 def init_db():
