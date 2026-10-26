@@ -820,10 +820,12 @@ _ship_cache = {}
 _ship_fail = {}
 
 
-def ship_charges(pin):
+def ship_charges(pin, only=None):
     """{buyer_product_id: rupees or None} for one delivery pincode, from every seller (Shiprocket rate / flat self-ship charge). Cached 30 min per seller."""
     out = {}
     for sl in SELLERS:
+        if only is not None and sl["key"] not in only:   # at checkout ask only the sellers whose products are in the cart
+            continue
         ck = (sl["key"], pin)
         hit = _ship_cache.get(ck)
         if hit and time.time() - hit[0] < 1800:
@@ -907,7 +909,7 @@ def create_order():
         if str(body.get("pin") or "") != pin:
             err(409, "Delivery pincode changed. Refreshing prices, please try again")
         try:
-            ch = ship_charges(pin)
+            ch = ship_charges(pin, only={(x["seller_key"] or DEFAULT_SELLER) for x in rows})
         except Exception as e:
             log.warning("shipping quote at order %s: %s", pin, e)
             err(503, "Could not calculate the delivery charge right now. Please try again")
