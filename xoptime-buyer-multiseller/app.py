@@ -51,7 +51,7 @@ if _dburl2 and not _schema2:
     _schema2 = "seller"                        # selfship app's default DB_SCHEMA
 if _url2 or _schema2:
     SELLERS.append({"key": "ss", "name": "Self-ship seller", "url": _url2, "schema": _schema2, "dburl": _dburl2, "offset": 1000000,
-                    "sync": env("SELLER2_SYNC_KEY", "") or _shared_key(DB_URL)})
+                    "sync": env("SELLER2_SYNC_KEY", "") or _shared_key(_dburl2 or DB_URL)})
 SELLER_BY_KEY = {s["key"]: s for s in SELLERS}
 DEFAULT_SELLER = "sr"
 SELLER2_SHIPPING = int(env("SELLER2_SHIPPING_CHARGE", "0") or 0)   # self-ship seller: 0 = buyer sees exactly the seller's selling price
@@ -78,7 +78,7 @@ if _dburl2 and not _schema2:
     _schema2 = "seller"                        # selfship app's default DB_SCHEMA
 if _url2 or _schema2:
     SELLERS.append({"key": "ss", "name": "Self-ship seller", "url": _url2, "schema": _schema2, "dburl": _dburl2, "offset": 1000000,
-                    "sync": env("SELLER2_SYNC_KEY", "") or _shared_key(DB_URL)})
+                    "sync": env("SELLER2_SYNC_KEY", "") or _shared_key(_dburl2 or DB_URL)})
 SELLER_BY_KEY = {s["key"]: s for s in SELLERS}
 DEFAULT_SELLER = "sr"
 
@@ -143,6 +143,9 @@ def init_db():
     if not (SELLER_URL and SELLER_SYNC_KEY):
         log.info("SELLER_URL / SELLER_SYNC_KEY not set: products are read from the seller schema in this database; order hand-off to the seller needs both")
     log.info("sellers configured: %s", ", ".join("%s(%s%s)" % (s["key"], s["url"] or "no-url", (" + DB schema=" + s["schema"] + (" OWN-DB" if s.get("dburl") else " shared-DB")) if s["schema"] else " API-only") for s in SELLERS))
+    for s in SELLERS:
+        if not s["url"]:
+            log.warning("SELLER %s: URL not set. Products sync from its database, but ORDERS cannot reach it (stay 'pending'). Set SELLER2_URL", s["key"])
     keys = [s["sync"] for s in SELLERS]
     if len(SELLERS) > 1 and len(set(keys)) < len(keys):
         log.warning("SELLER_SYNC_KEY and SELLER2_SYNC_KEY are the same: status updates from the two sellers cannot be told apart. "
@@ -973,6 +976,7 @@ def cancel_order(oid):
 @app.post("/api/orders/<int:oid>/pay-start")
 def pay_start(oid):
     """Switch a Cash-on-Delivery order to online payment (5% off)."""
+    err(409, "Online payment can only be chosen while placing the order")   # disabled: the seller already has this order as COD and would collect cash again
     u = uid()
     if not (RZP_ID and RZP_SECRET):
         err(400, "Online payment is not available right now")
